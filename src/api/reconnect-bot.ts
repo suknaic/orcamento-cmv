@@ -2,10 +2,9 @@ import { bot } from '../bot';
 
 export const POST = async () => {
   try {
-    // Se já estiver desconectado, apenas inicializa
-    if (typeof bot.isConnected === 'function' && await bot.isConnected()) {
-      await bot.disconnect();
-    }
+
+    // Sempre desconecta antes de inicializar para garantir ciclo completo
+    await bot.disconnect();
 
     // Aguarda reconexão e responde apenas após sucesso ou erro
     const reconectar = async () => {

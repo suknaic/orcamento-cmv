@@ -55,6 +55,7 @@ class WhatsAppBot {
   public async initialize() {
     this.ready = false;
     await this.client.initialize();
+    // O evento 'qr' será emitido automaticamente pelo client após initialize se necessário
     console.log("🤖 Bot do WhatsApp iniciado!");
   }
 
@@ -82,9 +83,9 @@ class WhatsAppBot {
   }
 
   public async disconnect() {
+    console.log("Desconectando o bot do WhatsApp...");
     this.ready = false;
     await this.client.destroy();
-    this.client = this.createClient();
     this.initializeEvents();
   }
 }

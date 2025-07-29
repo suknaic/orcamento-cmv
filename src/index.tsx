@@ -40,6 +40,13 @@ const server = serve({
         return mod.default.POST(req);
       },
     },
+
+    "/api/reconnect-bot": {
+      async POST(req) {
+        const mod = await import("./api/reconnect-bot.ts");
+        return mod.POST();
+      },
+    }
   },
 
   development: process.env.NODE_ENV !== "production" && {

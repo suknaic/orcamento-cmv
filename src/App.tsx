@@ -177,7 +177,17 @@ export function App() {
                   setWhatsConnected(false);
                   setQr(null);
                   setMessage("Reconectando WhatsApp...");
+                  // Aguarda reconexão e exibe skeleton até receber novo QR ou conexão
                   await fetch("/api/reconnect-bot", { method: "POST" });
+                  // Se em 10s não receber QR ou conexão, mostra erro
+                  setTimeout(() => {
+                    setMessage((msg) => {
+                      if (!whatsConnected && !qr) {
+                        return "Falha ao reconectar. Tente novamente.";
+                      }
+                      return msg;
+                    });
+                  }, 10000);
                 }}
                 title="Reconectar WhatsApp"
               >
