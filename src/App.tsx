@@ -6,8 +6,9 @@ import { ProdutosCrudPage } from "./page/ProdutosCrudPage";
 
 import check from "./check.svg";
 import Logo from './logo-julio.png';
-import { PropostaComercial } from "./components/proposta";
 
+
+import { bot } from '../src/bot';
 
 
 export function App() {
@@ -115,9 +116,21 @@ export function App() {
           <img src={Logo} alt="Logo" className="h-12 " />
           <span className="text-2xl font-bold">Dashboard de Orçamentos</span>
         </div>
-        <nav className="flex gap-6">
+        <nav className="flex gap-6 items-center">
           <button className={`font-semibold ${page === "dashboard" ? "text-green-700" : "text-gray-700"}`} onClick={() => setPage("dashboard")}>Orçamentos</button>
           <button className={`font-semibold ${page === "produtos" ? "text-green-700" : "text-gray-700"}`} onClick={() => setPage("produtos")}>Produtos</button>
+          <button
+            className="ml-4 px-3 py-1 rounded bg-yellow-500 text-white font-semibold hover:bg-yellow-600 border border-yellow-700"
+            onClick={async () => {
+              setWhatsConnected(false);
+              setQr(null);
+              setMessage("Reconectando WhatsApp...");
+              await fetch("/api/reconnect-bot", { method: "POST" });
+            }}
+            title="Reconectar WhatsApp"
+          >
+            Reconectar WhatsApp
+          </button>
         </nav>
       </header>
       <div className="pt-20">

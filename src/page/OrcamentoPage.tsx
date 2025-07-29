@@ -162,10 +162,14 @@ export function OrcamentoPage() {
   }
   async function enviarWhatsApp() {
     // Busca contatos reais do backend
-    const res = await fetch("/api/contatos");
-    const lista = await res.json();
-    setContatos(lista);
-    setShowModal(true);
+    try {
+      const res = await fetch("/api/contatos");
+      const lista = await res.json();
+      setContatos(lista);
+      setShowModal(true);
+    } catch (e) {
+      toast.error("Erro ao buscar contatos: " + e);
+    }
   }
 
   // Substituir handleEnviarParaSelecionados para gerar e enviar PDF
@@ -361,10 +365,14 @@ export function OrcamentoPage() {
                   onClick={async () => {
                     setShowInfoModal(false);
                     // Após preencher info extra, abrir modal de contatos para envio do PDF
-                    const res = await fetch("/api/contatos");
-                    const lista = await res.json();
-                    setContatos(lista);
-                    setShowModal(true);
+                    try {
+                      const res = await fetch("/api/contatos");
+                      const lista = await res.json();
+                      setContatos(lista);
+                      setShowModal(true);
+                    } catch (e) {
+                      toast.error("Erro ao buscar contatos: " + e);
+                    }
                   }}
                 >
                   Avançar

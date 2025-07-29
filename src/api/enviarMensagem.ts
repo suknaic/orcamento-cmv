@@ -13,7 +13,7 @@ export default {
     for (const numero of numeros) {
 
       try {
-        await bot.sendMessage(numero, mensagem);
+        await bot.sendOrcamento(numero, mensagem);
         resultados.push({ numero, status: 'ok' });
       } catch (e) {
         resultados.push({ numero, status: 'erro', erro: String(e) });

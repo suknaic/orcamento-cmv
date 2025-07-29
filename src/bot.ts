@@ -1,14 +1,18 @@
 import io from "./server";
 import qrcode from "qrcode";
-import { Client, LocalAuth } from "whatsapp-web.js";
-import check from './check.svg';
+import { Client, LocalAuth, MessageMedia } from "whatsapp-web.js";
+
 
 class WhatsAppBot {
   private client: Client;
 
   constructor() {
-    // Configuração do cliente WhatsApp Web
-    this.client = new Client({
+    this.client = this.createClient();
+    this.initializeEvents();
+  }
+
+  private createClient() {
+    return new Client({
       authStrategy: new LocalAuth({ clientId: "bot-orcamento" }),
       puppeteer: {
         headless: true,
@@ -23,8 +27,6 @@ class WhatsAppBot {
         ],
       },
     });
-
-    this.initializeEvents();
   }
 
   private initializeEvents() {
@@ -49,13 +51,27 @@ class WhatsAppBot {
   }
 
   public async getChatsIndividuais() {
+    if (!this.client.info || !this.client.info.wid) return [];
     const chats = await this.client.getChats();
     return chats.filter(chat => !chat.isGroup);
   }
 
-  public async sendMessage(numero: string, mensagem: string) {
+  public async sendOrcamento(numero: string, mensagem: string) {
     const jid = numero.endsWith("@c.us") ? numero : `${numero}@c.us`;
     return this.client.sendMessage(jid, mensagem);
+  }
+
+  public async sendOrcamentoPDF(numero: string, mensagem: string, file: { mimetype: string, data: string, filename: string }) {
+    const jid = numero.endsWith("@c.us") ? numero : `${numero}@c.us`;
+    const { mimetype, data, filename } = file;
+    const media = new MessageMedia(mimetype, data, filename);
+    return this.client.sendMessage(jid, media, { caption: mensagem });
+  }
+
+  public async disconnect() {
+    await this.client.destroy();
+    this.client = this.createClient();
+    this.initializeEvents();
   }
 }
 
