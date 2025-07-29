@@ -4,6 +4,7 @@ import index from "./index.html";
 import { getConfig, postConfig } from "./api/orcamentos";
 
 const server = serve({
+  idleTimeout: 255, // Define o tempo limite de inatividade em segundos
   routes: {
     // Serve index.html for all unmatched routes.
     "/*": index,

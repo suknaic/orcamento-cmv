@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { PropostaComercial } from "../components/proposta";
-import domtoimage from 'dom-to-image-more';
+import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { ToastContainer, toast } from "react-toastify";
 
@@ -36,6 +36,7 @@ function calcularOrcamento(material, tipo, preco, largura, altura, quantidade) {
 
 
 export function OrcamentoPage() {
+  const [loadingEnviar, setLoadingEnviar] = useState(false);
 
     // Estado para modal de informações extras
   const [showInfoModal, setShowInfoModal] = useState<false | 'pdf'>(false);
@@ -56,24 +57,24 @@ export function OrcamentoPage() {
 
 
   const [materiais, setMateriais] = useState([]);
-  const [materialSelecionado, setMaterialSelecionado] = useState(null);
-  const [tipo, setTipo] = useState("");
-  const [preco, setPreco] = useState(0);
-  const [largura, setLargura] = useState("");
-  const [altura, setAltura] = useState("");
-  const [quantidade, setQuantidade] = useState(1);
-  const [valor, setValor] = useState(0);
+  const [produtos, setProdutos] = useState([
+    { materialSelecionado: null, tipo: '', preco: 0, largura: '', altura: '', quantidade: 1, valor: 0 }
+  ]);
   const [mensagem, setMensagem] = useState("");
 
   // Monta os dados do orçamento para passar para o componente PropostaComercial
-  const orcamentoData = [
-    {
-      descricao: mensagem.split('\n')[0]?.replace('Orçamento: ', '') || '',
-      quantidade: quantidade,
-      valorUnitario: preco,
-      total: valor
-    }
-  ];
+  const orcamentoData = produtos.map((p, idx) => ({
+    descricao: p.materialSelecionado ? p.materialSelecionado +
+      (p.tipo === 'm2' ? ` (${p.largura}x${p.altura}m${p.quantidade > 1 ? `, ${p.quantidade}x` : ''})` :
+        p.tipo === 'milheiro' ? (p.quantidade === 1 ? ' (1 milheiro)' : ` (${p.quantidade} milheiros)`) :
+        p.tipo === 'unidade' ? (p.quantidade === 1 ? ' (1 unidade)' : ` (${p.quantidade} unidades)`) :
+        p.tipo === 'kit' ? (p.quantidade === 1 ? ' (1 kit)' : ` (${p.quantidade} kits)`) :
+        '') : '',
+    quantidade: p.quantidade,
+    valorUnitario: p.preco,
+    total: p.valor
+  }));
+  const valorTotal = produtos.reduce((acc, p) => acc + p.valor, 0);
 
    // Carrega materiais do backend ao montar
   useEffect(() => {
@@ -87,61 +88,44 @@ export function OrcamentoPage() {
       });
   }, []);
 
+  // Atualiza tipo e preco ao selecionar material de cada produto
   useEffect(() => {
-    if (!materialSelecionado) return;
-    const mat = materiais.find(m => m.nome === materialSelecionado);
-    if (!mat) return;
-    // Detecta tipo pelo nome (ajuste conforme necessário)
-    let tipoDetectado = "unidade";
-    if (/m2|acm|lona|adesivo|acrílico/i.test(mat.nome)) tipoDetectado = "m2";
-    if (/milheiro/i.test(mat.nome)) tipoDetectado = "milheiro";
-    if (/kit/i.test(mat.nome)) tipoDetectado = "kit";
-    setTipo(tipoDetectado);
-    setPreco(mat.preco);
-  }, [materialSelecionado, materiais]);
+    setProdutos(produtos => produtos.map((p, idx) => {
+      if (!p.materialSelecionado) return { ...p };
+      const mat = materiais.find(m => m.nome === p.materialSelecionado);
+      if (!mat) return { ...p };
+      let tipoDetectado = 'unidade';
+      if (/m2|acm|lona|adesivo|acrílico/i.test(mat.nome)) tipoDetectado = 'm2';
+      if (/milheiro/i.test(mat.nome)) tipoDetectado = 'milheiro';
+      if (/kit/i.test(mat.nome)) tipoDetectado = 'kit';
+      return { ...p, tipo: tipoDetectado, preco: mat.preco };
+    }));
+  }, [materiais, produtos.map(p => p.materialSelecionado).join()]);
 
   useEffect(() => {
-    setValor(
-      calcularOrcamento(
-        materialSelecionado,
-        tipo,
-        preco,
-        largura,
-        altura,
-        quantidade
+    setProdutos(produtos => produtos.map(p => ({
+      ...p,
+      valor: calcularOrcamento(
+        p.materialSelecionado,
+        p.tipo,
+        p.preco,
+        p.largura,
+        p.altura,
+        p.quantidade
       )
-    );
-  }, [materialSelecionado, tipo, preco, largura, altura, quantidade]);
+    })));
+  }, [produtos.map(p => [p.materialSelecionado, p.tipo, p.preco, p.largura, p.altura, p.quantidade].join()).join()]);
 
   useEffect(() => {
-    if (!materialSelecionado) return setMensagem("");
-    let desc = `${materialSelecionado}`;
-    if (tipo === "m2") {
-      desc += ` (${largura}x${altura}m`;
-      if (quantidade > 1) desc += `, ${quantidade}x`;
-      desc += ")";
-    } else if (tipo === "milheiro") {
-      if (quantidade === 1) {
-        desc += ` (1 milheiro)`;
-      } else {
-        desc += ` (${quantidade} milheiros)`;
-      }
-    } else if (tipo === "unidade") {
-      desc += quantidade === 1 ? ` (1 unidade)` : ` (${quantidade} unidades)`;
-    } else if (tipo === "kit") {
-      desc += quantidade === 1 ? ` (1 kit)` : ` (${quantidade} kits)`;
-    }
-    // Data e hora atuais
+    // Gera mensagem geral do orçamento
     const agora = new Date();
     const dataStr = agora.toLocaleDateString("pt-BR");
     const horaStr = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-    // Prazo de produção (2 dias úteis)
     function addBusinessDays(date, days) {
       let result = new Date(date);
       let added = 0;
       while (added < days) {
         result.setDate(result.getDate() + 1);
-        // 0 = domingo, 6 = sábado
         if (result.getDay() !== 0 && result.getDay() !== 6) {
           added++;
         }
@@ -151,10 +135,14 @@ export function OrcamentoPage() {
     const prazoProducao = 2;
     const previsaoEntrega = addBusinessDays(agora, prazoProducao);
     const previsaoStr = previsaoEntrega.toLocaleDateString("pt-BR");
+    const msg = produtos.map((p, idx) =>
+      p.materialSelecionado ?
+        `${idx + 1}. ${p.materialSelecionado} (${p.quantidade}x) - R$${p.valor.toLocaleString("pt-BR", {minimumFractionDigits:2})}` : ''
+    ).filter(Boolean).join('\n');
     setMensagem(
-      `Orçamento: ${desc}\nValor estimado: R$${valor.toLocaleString("pt-BR", {minimumFractionDigits:2})}\nValidade: 7 dias\nPrazo de produção: ${prazoProducao} dias úteis\nData: ${dataStr}\nHora: ${horaStr}\nPrevisão para entrega: ${previsaoStr}`
+      `Orçamento:\n${msg}\nValor total: R$${valorTotal.toLocaleString("pt-BR", {minimumFractionDigits:2})}\nValidade: 7 dias\nPrazo de produção: ${prazoProducao} dias úteis\nData: ${dataStr}\nHora: ${horaStr}\nPrevisão para entrega: ${previsaoStr}`
     );
-  }, [materialSelecionado, tipo, largura, altura, quantidade, valor]);
+  }, [produtos, valorTotal]);
 
   function copiar() {
     navigator.clipboard.writeText(mensagem);
@@ -176,10 +164,11 @@ export function OrcamentoPage() {
   async function handleEnviarParaSelecionados() {
     if (contatosSelecionados.length === 0) return;
     if (!propostaRef.current) return toast.error('Erro ao gerar PDF: componente não encontrado');
+    setLoadingEnviar(true);
     try {
-      // Gera PDF como blob
-      const dataUrl = await domtoimage.toPng(propostaRef.current);
-      // Converte base64 para blob
+      // Gera PDF como blob usando html2canvas
+      const canvas = await html2canvas(propostaRef.current, {backgroundColor: '#fff'});
+      const dataUrl = canvas.toDataURL('image/png');
       const res = await fetch(dataUrl);
       const blob = await res.blob();
       const formData = new FormData();
@@ -207,6 +196,7 @@ export function OrcamentoPage() {
       toast.error("Erro ao enviar PDF: " + e);
     }
     setShowModal(false);
+    setLoadingEnviar(false);
   }
   function handleCheckContato(numero) {
     setContatosSelecionados(prev =>
@@ -223,61 +213,85 @@ export function OrcamentoPage() {
       <ToastContainer position="top-center" autoClose={3500} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
       <div className="max-w-xl mx-auto bg-white rounded shadow p-8">
         <h2 className="text-2xl font-bold mb-6">Novo Orçamento</h2>
-        <div className="mb-4">
-          <label className="block mb-1 font-semibold">Material</label>
-          <select
-            className="border rounded px-2 py-1 w-full"
-            value={materialSelecionado || ""}
-            onChange={e => setMaterialSelecionado(e.target.value)}
-          >
-            <option value="">Selecione...</option>
-            {materiais.map((mat, idx) => (
-              <option key={idx} value={mat.nome}>{mat.nome}</option>
-            ))}
-          </select>
-        </div>
-        {tipo && tiposMateriais[tipo]?.campos.includes("largura") && (
-          <div className="mb-2">
-            <label className="block mb-1">Largura (m)</label>
-            <input
-              type="number"
-              min={0}
-              step={0.01}
-              className="border rounded px-2 py-1 w-full"
-              value={largura}
-              onChange={e => setLargura(e.target.value)}
-            />
+        {produtos.map((p, idx) => (
+          <div key={idx} className="mb-2 border-b pb-2 last:border-b-0 last:pb-0">
+            <div
+              className="grid grid-cols-1 sm:grid-cols-[1.2fr_repeat(2,0.8fr)_0.7fr_1fr_auto] gap-x-4 gap-y-2 items-end"
+            >
+              <div className="flex flex-col min-w-0">
+                <label className="block mb-0.5 font-semibold text-xs">Material</label>
+                <select
+                  className="border rounded px-2 py-1 min-w-[100px] text-md"
+                  value={p.materialSelecionado || ""}
+                  onChange={e => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, materialSelecionado: e.target.value } : prod))}
+                >
+                  <option value="">Selecione...</option>  
+                  {materiais.map((mat, i) => (
+                    <option key={i} value={mat.nome}>{mat.nome}</option>
+                  ))}
+                </select>
+              </div>
+              {p.tipo && tiposMateriais[p.tipo]?.campos.includes("largura") ? (
+                <div className="flex flex-col min-w-0">
+                  <label className="block mb-0.5 text-xs">Largura (m)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    className="border rounded px-2 py-1 min-w-[60px] text-xs"
+                    value={p.largura}
+                    onChange={e => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, largura: e.target.value } : prod))}
+                  />
+                </div>
+              ) : <div />}
+              {p.tipo && tiposMateriais[p.tipo]?.campos.includes("altura") ? (
+                <div className="flex flex-col min-w-0">
+                  <label className="block mb-0.5 text-xs">Altura (m)</label>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    className="border rounded px-2 py-1 min-w-[60px] text-xs"
+                    value={p.altura}
+                    onChange={e => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, altura: e.target.value } : prod))}
+                  />
+                </div>
+              ) : <div />}
+              {p.tipo && tiposMateriais[p.tipo]?.campos.includes("quantidade") ? (
+                <div className="flex flex-col min-w-0">
+                  <label className="block mb-0.5 text-xs">Qtd</label>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    className="border rounded px-2 py-1 min-w-[50px] text-xs"
+                    value={p.quantidade}
+                    onChange={e => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, quantidade: Number(e.target.value) } : prod))}
+                  />
+                </div>
+              ) : <div />}
+              <div className="flex flex-col min-w-0 text-right">
+                <label className="block mb-0.5 text-xs">Subtotal</label>
+                <span className="text-green-700 font-bold text-sm">R${p.valor.toLocaleString("pt-BR", {minimumFractionDigits:2})}</span>
+              </div>
+              <div className="flex items-center justify-end min-w-0">
+                {produtos.length > 1 && (
+                  <button type="button" className="text-red-600 text-xs px-2 py-1 hover:underline" onClick={() => setProdutos(produtos => produtos.filter((_, i) => i !== idx))}>Remover</button>
+                )}
+              </div>
+            </div>
           </div>
-        )}
-        {tipo && tiposMateriais[tipo]?.campos.includes("altura") && (
-          <div className="mb-2">
-            <label className="block mb-1">Altura (m)</label>
-            <input
-              type="number"
-              min={0}
-              step={0.01}
-              className="border rounded px-2 py-1 w-full"
-              value={altura}
-              onChange={e => setAltura(e.target.value)}
-            />
-          </div>
-        )}
-        {tipo && tiposMateriais[tipo]?.campos.includes("quantidade") && (
-          <div className="mb-2">
-            <label className="block mb-1">Quantidade</label>
-            <input
-              type="number"
-              min={1}
-              step={1}
-              className="border rounded px-2 py-1 w-full"
-              value={quantidade}
-              onChange={e => setQuantidade(Number(e.target.value))}
-            />
-          </div>
-        )}
+        ))}
+        <button
+          type="button"
+          className="mb-4 px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600"
+          onClick={() => setProdutos(produtos => [...produtos, { materialSelecionado: null, tipo: '', preco: 0, largura: '', altura: '', quantidade: 1, valor: 0 }])}
+        >
+          + Adicionar produto
+        </button>
         <div className="mb-4 mt-4">
-          <span className="font-semibold">Valor estimado: </span>
-          <span className="text-lg text-green-700 font-bold">R${valor.toLocaleString("pt-BR", {minimumFractionDigits:2})}</span>
+          <span className="font-semibold">Valor total: </span>
+          <span className="text-lg text-green-700 font-bold">R${valorTotal.toLocaleString("pt-BR", {minimumFractionDigits:2})}</span>
         </div>
         <div className="mb-4">
           <textarea
@@ -361,7 +375,7 @@ export function OrcamentoPage() {
                   Cancelar
                 </button>
                 <button
-                  className="px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700"
+                  className="px-4 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-700"
                   onClick={async () => {
                     setShowInfoModal(false);
                     // Após preencher info extra, abrir modal de contatos para envio do PDF
@@ -375,22 +389,52 @@ export function OrcamentoPage() {
                     }
                   }}
                 >
-                  Avançar
+                  Enviar WhatsApp
+                </button>
+                <button
+                  className="px-4 py-2 rounded bg-purple-600 text-white font-semibold hover:bg-purple-700"
+                  onClick={async () => {
+                    if (!propostaRef.current) return toast.error('Erro ao gerar PDF: componente não encontrado');
+                    const node = propostaRef.current;
+                    const prevBorder = node.style.border;
+                    const prevBoxShadow = node.style.boxShadow;
+                    node.style.border = 'none';
+                    node.style.boxShadow = 'none';
+                    node.style.outline = 'none';
+                    try {
+                      const canvas = await html2canvas(node, {backgroundColor: '#fff'});
+                      const imgData = canvas.toDataURL('image/png');
+                      const img = new window.Image();
+                      img.src = imgData;
+                      img.onload = () => {
+                        const pdf = new jsPDF({ orientation: 'p', unit: 'px', format: [img.width, img.height] });
+                        pdf.addImage(img, 'PNG', 0, 0, img.width, img.height);
+                        pdf.save('proposta.pdf');
+                      };
+                    } catch (e) {
+                      toast.error('Erro ao baixar PDF: ' + e);
+                    } finally {
+                      node.style.border = prevBorder;
+                      node.style.boxShadow = prevBoxShadow;
+                    }
+                  }}
+                >
+                  Baixar PDF
                 </button>
               </div>
             </div>
           </div>
         )}
         {/* Renderização invisível do PropostaComercial para gerar PDF */}
-        <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
-          <div ref={propostaRef}>
+        <div style={{ position: 'absolute', left: '-9999px', top: 0, border: 'none', boxShadow: 'none', outline: 'none' }}>
+          <div ref={propostaRef} className=" rounded-none shadow-none border-none isolate">
             <PropostaComercial
               cliente={info.cliente || 'Cliente'}
               validade={info.validade || '7 dias'}
               desconto={info.desconto}
               pagamento={info.pagamento || 'À vista'}
               orcamento={orcamentoData}
-              total={valor}
+              total={valorTotal}
             />
           </div>
         </div>
@@ -440,11 +484,17 @@ export function OrcamentoPage() {
                   Cancelar
                 </button>
                 <button
-                  className="px-4 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-700"
-                  disabled={contatosSelecionados.length === 0}
+                  className="px-4 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-700 flex items-center gap-2"
+                  disabled={contatosSelecionados.length === 0 || loadingEnviar}
                   onClick={handleEnviarParaSelecionados}
                 >
-                  Enviar
+                  {loadingEnviar && (
+                    <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                  )}
+                  {loadingEnviar ? "Enviando..." : "Enviar"}
                 </button>
               </div>
             </div>

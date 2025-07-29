@@ -30,7 +30,7 @@ const PropostaComercial = ({
   total = 10000,
 }: PropostaComercialProps) => {
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white border rounded-lg shadow-lg text-gray-800">
+    <div className="max-w-3xl mx-auto p-6 text-gray-800" style={{background: '#fff'}}>
       {/* Header da proposta */}
       <div className="flex justify-center mb-6">
         <img src={Header} alt="Header Proposta" className="w-full object-contain" />
@@ -48,7 +48,7 @@ const PropostaComercial = ({
         {desconto && <p><strong>Desconto:</strong> {desconto}</p>}
       </div>
 
-      <table className="w-full border border-gray-300 mb-4">
+      <table className="w-full border  mb-4">
         <thead>
           <tr className="bg-gray-100">
             <th className="border px-3 py-2 text-left">#</th>
@@ -83,15 +83,21 @@ const PropostaComercial = ({
         <p>📍 Rio Branco - AC | 17 de Agosto de 2025</p>
       </div>
 
-      <div className="text-sm text-gray-600">
+      <div className="text-sm text-gray-600 border-none">
         <p>1. As cores podem variar até 10% para mais claro ou mais escuro.</p>
         <p>2. Não garantimos fidelidade 100% das cores.</p>
         <p>3. Após aprovação, erros ortográficos serão responsabilidade do cliente.</p>
       </div>
 
-      <div className="flex flex-col items-center mt-8">
-        <div className="w-[500px] border-b-2 border-gray-400 mb-2"></div>
-        <span className="text-gray-700 text-sm">Assinatura do Cliente</span>
+      <div className="flex flex-row items-end justify-center gap-12 mt-12 mb-40">
+        <div className="flex flex-col items-center">
+          <div className="w-[220px] border-b-2 border-gray-400 mb-2"></div>
+          <span className="text-gray-700 text-sm">Assinatura do Cliente</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <div className="w-[220px] border-b-2 border-gray-400 mb-2"></div>
+          <span className="text-gray-700 text-sm">Assinatura do Júlio</span>
+        </div>
       </div>
     </div>
   );
