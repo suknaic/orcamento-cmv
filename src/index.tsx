@@ -1,0 +1,69 @@
+import './bot'
+import { serve } from "bun";
+import index from "./index.html";
+import { getConfig, postConfig } from "./api/orcamentos";
+
+const server = serve({
+  routes: {
+    // Serve index.html for all unmatched routes.
+    "/*": index,
+
+    "/api/hello": {
+      async GET(req) {
+        return Response.json({
+          message: "Hello, world!",
+          method: "GET",
+        });
+      },
+      async PUT(req) {
+        return Response.json({
+          message: "Hello, world!",
+          method: "PUT",
+        });
+      },
+    },
+
+    "/api/hello/:name": async req => {
+      const name = req.params.name;
+      return Response.json({
+        message: `Hello, ${name}!`,
+      });
+    },
+
+    // Rotas para materiais e acabamentos
+    "/api/config": {
+      async GET(req) {
+        return getConfig(req);
+      },
+      async POST(req) {
+        return postConfig(req);
+      },
+    },
+
+    // Rota para contatos do WhatsApp
+    "/api/contatos": {
+      async GET(req) {
+        const mod = await import("./api/contatos.ts");
+        return mod.default.GET(req);
+      },
+    },
+
+    // Rota para envio de mensagem WhatsApp
+    "/api/enviarMensagem": {
+      async POST(req) {
+        const mod = await import("./api/enviarMensagem.ts");
+        return mod.default.POST(req);
+      },
+    },
+  },
+
+  development: process.env.NODE_ENV !== "production" && {
+    // Enable browser hot reloading in development
+    hmr: true,
+
+    // Echo console logs from the browser to the server
+    console: true,
+  },
+});
+
+console.log(`🚀 Server running at ${server.url}`);
