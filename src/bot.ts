@@ -5,6 +5,7 @@ import { Client, LocalAuth, MessageMedia } from "whatsapp-web.js";
 
 class WhatsAppBot {
   private client: Client;
+  private ready: boolean = false;
 
   constructor() {
     this.client = this.createClient();
@@ -40,14 +41,25 @@ class WhatsAppBot {
     });
 
     this.client.on("ready", () => {
+      this.ready = true;
       console.log("Cliente WhatsApp está pronto!");
       io.emit('connected');
+    });
+
+    this.client.on("disconnected", () => {
+      this.ready = false;
+      io.emit('disconnected');
     });
   }
 
   public async initialize() {
+    this.ready = false;
     await this.client.initialize();
     console.log("🤖 Bot do WhatsApp iniciado!");
+  }
+
+  public async isConnected() {
+    return this.ready;
   }
 
   public async getChatsIndividuais() {
@@ -70,6 +82,7 @@ class WhatsAppBot {
   }
 
   public async disconnect() {
+    this.ready = false;
     await this.client.destroy();
     this.client = this.createClient();
     this.initializeEvents();

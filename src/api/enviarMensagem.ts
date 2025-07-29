@@ -13,7 +13,7 @@ export default {
     // Rodapé fixo
     const rodape = [
       'CNPJ: 52.548.924/0001-20',
-      'JULIO EDUARDO DE OLIVEIRA FROTA',
+      'JULIO DESIGNER',
       'travessa da vitória, Nº 165',
       'bairro: Montanhês',
       'Cep: 69.921-554',

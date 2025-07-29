@@ -30,7 +30,7 @@ const PropostaComercial = ({
   total = 10000,
 }: PropostaComercialProps) => {
   // Dados fixos do rodapé
-  const rodape = 'CNPJ: 52.548.924/0001-20 | JULIO EDUARDO DE OLIVEIRA FROTA | travessa da vitória, Nº 165 | bairro: Montanhês | Cep: 69.921-554 | WhatsApp: (68) 99976-0124';
+  const rodape = 'CNPJ: 52.548.924/0001-20 | JULIO DESIGNER | travessa da vitória, Nº 165 | bairro: Montanhês | Cep: 69.921-554 | WhatsApp: (68) 99976-0124';
   // Telefone do WhatsApp (será preenchido pelo backend, mas pode ser fixo aqui)
   const whatsapp = '(68) 99976-0124';
   return (
