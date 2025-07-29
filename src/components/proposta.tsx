@@ -30,73 +30,82 @@ const PropostaComercial = ({
   total = 10000,
 }: PropostaComercialProps) => {
   return (
-    <div className="max-w-3xl mx-auto p-6 text-gray-800" style={{background: '#fff'}}>
+    <div style={{
+      maxWidth: '48rem',
+      margin: '0 auto',
+      padding: '1.5rem',
+      color: '#222',
+      background: '#fff',
+      fontFamily: 'sans-serif',
+      fontSize: '1rem',
+      borderRadius: '8px',
+      boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+    }}>
       {/* Header da proposta */}
-      <div className="flex justify-center mb-6">
-        <img src={Header} alt="Header Proposta" className="w-full object-contain" />
+      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+        <img src={Header} alt="Header Proposta" style={{ width: '100%', objectFit: 'contain' }} />
       </div>
 
-      <div className="mb-4">
-        <h2 className="text-2xl font-bold text-red-700">ALERTA CIDADE</h2>
+      <div style={{ marginBottom: '1rem' }}>
         <p><strong>Cliente:</strong> {cliente}</p>
         <p><strong>Designer:</strong> Júlio Eduardo | 📞 (68) 99976-0124</p>
       </div>
-      <div className="mb-4">
+      <div style={{ marginBottom: '1rem' }}>
         <p><strong>Validade da proposta:</strong> {validade}</p>
         <p><strong>Prazo de entrega:</strong> 2 dias</p>
         <p><strong>Pagamento:</strong> {pagamento}</p>
         {desconto && <p><strong>Desconto:</strong> {desconto}</p>}
       </div>
 
-      <table className="w-full border  mb-4">
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '1rem', background: '#fff' }}>
         <thead>
-          <tr className="bg-gray-100">
-            <th className="border px-3 py-2 text-left">#</th>
-            <th className="border px-3 py-2 text-left">Descrição</th>
-            <th className="border px-3 py-2 text-left">Qtd</th>
-            <th className="border px-3 py-2 text-left">Valor Unitário</th>
-            <th className="border px-3 py-2 text-left">Total</th>
+          <tr style={{ background: '#f3f4f6' }}>
+            <th style={{ border: '1px solid #d1d5db', padding: '0.5rem', textAlign: 'left' }}>#</th>
+            <th style={{ border: '1px solid #d1d5db', padding: '0.5rem', textAlign: 'left' }}>Descrição</th>
+            <th style={{ border: '1px solid #d1d5db', padding: '0.5rem', textAlign: 'left' }}>Qtd</th>
+            <th style={{ border: '1px solid #d1d5db', padding: '0.5rem', textAlign: 'left' }}>Valor Unitário</th>
+            <th style={{ border: '1px solid #d1d5db', padding: '0.5rem', textAlign: 'left' }}>Total</th>
           </tr>
         </thead>
         <tbody>
           {orcamento.map((item, idx) => (
             <tr key={idx}>
-              <td className="border px-3 py-2">{String(idx + 1).padStart(2, '0')}</td>
-              <td className="border px-3 py-2">{item.descricao}</td>
-              <td className="border px-3 py-2">{item.quantidade}</td>
-              <td className="border px-3 py-2">R$ {item.valorUnitario.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
-              <td className="border px-3 py-2">R$ {item.total.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+              <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }}>{String(idx + 1).padStart(2, '0')}</td>
+              <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }}>{item.descricao}</td>
+              <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }}>{item.quantidade}</td>
+              <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }}>R$ {item.valorUnitario.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+              <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }}>R$ {item.total.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
             </tr>
           ))}
         </tbody>
         <tfoot>
-          <tr className="bg-gray-50">
-            <td className="border px-3 py-2" colSpan={4}>Total com Descontos</td>
-            <td className="border px-3 py-2 font-bold">R$ {total.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+          <tr style={{ background: '#f9fafb' }}>
+            <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }} colSpan={4}>Total com Descontos</td>
+            <td style={{ border: '1px solid #d1d5db', padding: '0.5rem', fontWeight: 700 }}>R$ {total.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
           </tr>
         </tfoot>
       </table>
 
-      <div className="mb-4">
-        <p className="italic">Autorizo a confecção deste material por cujo conteúdo me responsabilizo, ciente.</p>
+      <div style={{ marginBottom: '1rem' }}>
+        <p style={{ fontStyle: 'italic' }}>Autorizo a confecção deste material por cujo conteúdo me responsabilizo, ciente.</p>
         <p><strong>Assinatura:</strong> Júlio Eduardo - Designer Gráfico</p>
         <p>📍 Rio Branco - AC | 17 de Agosto de 2025</p>
       </div>
 
-      <div className="text-sm text-gray-600 border-none">
+      <div style={{ fontSize: '0.875rem', color: '#4b5563', border: 'none' }}>
         <p>1. As cores podem variar até 10% para mais claro ou mais escuro.</p>
         <p>2. Não garantimos fidelidade 100% das cores.</p>
         <p>3. Após aprovação, erros ortográficos serão responsabilidade do cliente.</p>
       </div>
 
-      <div className="flex flex-row items-end justify-center gap-12 mt-12 mb-40">
-        <div className="flex flex-col items-center">
-          <div className="w-[220px] border-b-2 border-gray-400 mb-2"></div>
-          <span className="text-gray-700 text-sm">Assinatura do Cliente</span>
+      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: '3rem', marginTop: '3rem', marginBottom: '10rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ width: '220px', borderBottom: '2px solid #9ca3af', marginBottom: '0.5rem' }}></div>
+          <span style={{ color: '#374151', fontSize: '0.875rem' }}>Assinatura do Cliente</span>
         </div>
-        <div className="flex flex-col items-center">
-          <div className="w-[220px] border-b-2 border-gray-400 mb-2"></div>
-          <span className="text-gray-700 text-sm">Assinatura do Júlio</span>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ width: '220px', borderBottom: '2px solid #9ca3af', marginBottom: '0.5rem' }}></div>
+          <span style={{ color: '#374151', fontSize: '0.875rem' }}>Assinatura do Júlio</span>
         </div>
       </div>
     </div>

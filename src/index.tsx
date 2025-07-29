@@ -33,6 +33,13 @@ const server = serve({
         return mod.default.POST(req);
       },
     },
+
+    "/api/enviarPDF": {
+      async POST(req) {
+        const mod = await import("./api/enviarMensagemComPdf.ts")
+        return mod.default.POST(req);
+      },
+    },
   },
 
   development: process.env.NODE_ENV !== "production" && {

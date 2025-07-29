@@ -161,21 +161,68 @@ export function OrcamentoPage() {
   }
 
   // Substituir handleEnviarParaSelecionados para gerar e enviar PDF
-  async function handleEnviarParaSelecionados() {
+  async function enviarMensagemWhatsApp() {
+    if (contatosSelecionados.length === 0) return;
+    setLoadingEnviar(true);
+    try {
+      const resp = await fetch('/api/enviarMensagem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          numeros: contatosSelecionados,
+          mensagem
+        })
+      });
+      let data = null;
+      try {
+        data = await resp.json();
+      } catch (jsonErr) {
+        toast.error("Erro ao processar resposta do servidor. Tente novamente.");
+        setShowModal(false);
+        return;
+      }
+      if (data && data.ok) {
+        toast.success("Mensagem enviada para os contatos selecionados!");
+      } else {
+        toast.error("Falha ao enviar mensagem: " + (data?.error || "Erro desconhecido"));
+      }
+    } catch (e) {
+      toast.error("Erro ao enviar: " + e);
+    }
+    setShowModal(false);
+    setLoadingEnviar(false);
+  }
+
+  async function enviarPDFWhatsApp() {
     if (contatosSelecionados.length === 0) return;
     if (!propostaRef.current) return toast.error('Erro ao gerar PDF: componente não encontrado');
     setLoadingEnviar(true);
     try {
-      // Gera PDF como blob usando html2canvas
-      const canvas = await html2canvas(propostaRef.current, {backgroundColor: '#fff'});
-      const dataUrl = canvas.toDataURL('image/png');
-      const res = await fetch(dataUrl);
-      const blob = await res.blob();
+      // Gera PDF real usando jsPDF
+      const jsPDF = (await import('jspdf')).jsPDF;
+      const html2canvas = (await import('html2canvas')).default;
+      const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+      const node = propostaRef.current;
+      // Usa html2canvas para capturar imagem, mas insere no PDF corretamente
+      const canvas = await html2canvas(node, { backgroundColor: '#fff', scale: 2 });
+      const imgData = canvas.toDataURL('image/png');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      // Calcula proporção para caber na página
+      const imgProps = pdf.getImageProperties(imgData);
+      let pdfWidth = pageWidth;
+      let pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      if (pdfHeight > pageHeight) {
+        pdfHeight = pageHeight;
+        pdfWidth = (imgProps.width * pdfHeight) / imgProps.height;
+      }
+      pdf.addImage(imgData, 'PNG', (pageWidth - pdfWidth) / 2, 20, pdfWidth, pdfHeight);
+      const pdfBlob = pdf.output('blob');
       const formData = new FormData();
-      formData.append('pdf', blob, 'proposta.pdf');
+      formData.append('pdf', pdfBlob, 'proposta.pdf');
       formData.append('numeros', JSON.stringify(contatosSelecionados));
-      // Envia para backend
-      const resp = await fetch('/api/enviarPdf', {
+      // Não envia mensagem junto!
+      const resp = await fetch('/api/enviarPDF', {
         method: 'POST',
         body: formData
       });
@@ -378,7 +425,7 @@ export function OrcamentoPage() {
                   className="px-4 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-700"
                   onClick={async () => {
                     setShowInfoModal(false);
-                    // Após preencher info extra, abrir modal de contatos para envio do PDF
+                    // Após preencher info extra, abrir modal de contatos para envio de mensagem texto
                     try {
                       const res = await fetch("/api/contatos");
                       const lista = await res.json();
@@ -486,7 +533,7 @@ export function OrcamentoPage() {
                 <button
                   className="px-4 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-700 flex items-center gap-2"
                   disabled={contatosSelecionados.length === 0 || loadingEnviar}
-                  onClick={handleEnviarParaSelecionados}
+                  onClick={enviarMensagemWhatsApp}
                 >
                   {loadingEnviar && (
                     <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
@@ -495,6 +542,19 @@ export function OrcamentoPage() {
                     </svg>
                   )}
                   {loadingEnviar ? "Enviando..." : "Enviar"}
+                </button>
+                <button
+                  className="px-4 py-2 rounded bg-purple-600 text-white font-semibold hover:bg-purple-700 flex items-center gap-2"
+                  disabled={contatosSelecionados.length === 0 || loadingEnviar}
+                  onClick={enviarPDFWhatsApp}
+                >
+                  {loadingEnviar && (
+                    <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                  )}
+                  {loadingEnviar ? "Enviando..." : "Enviar PDF"}
                 </button>
               </div>
             </div>

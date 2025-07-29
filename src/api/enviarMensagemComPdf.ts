@@ -1,6 +1,6 @@
 import { bot } from '../bot';
 
-export const POST = async (req: Request) => {
+const POST = async (req: Request) => {
   // Espera multipart/form-data
   const contentType = req.headers.get('content-type') || '';
   if (!contentType.includes('multipart/form-data')) {
@@ -55,3 +55,5 @@ export const POST = async (req: Request) => {
     headers: { 'Content-Type': 'application/json' },
   });
 };
+
+export default { POST };

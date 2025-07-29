@@ -45,8 +45,8 @@ class WhatsAppBot {
     });
   }
 
-  public initialize() {
-    this.client.initialize();
+  public async initialize() {
+    await this.client.initialize();
     console.log("🤖 Bot do WhatsApp iniciado!");
   }
 
@@ -57,6 +57,7 @@ class WhatsAppBot {
   }
 
   public async sendOrcamento(numero: string, mensagem: string) {
+    console.log('chegou aqui')
     const jid = numero.endsWith("@c.us") ? numero : `${numero}@c.us`;
     return this.client.sendMessage(jid, mensagem);
   }
