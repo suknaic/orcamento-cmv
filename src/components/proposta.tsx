@@ -29,6 +29,10 @@ const PropostaComercial = ({
   ],
   total = 10000,
 }: PropostaComercialProps) => {
+  // Dados fixos do rodapé
+  const rodape = 'CNPJ: 52.548.924/0001-20 | JULIO EDUARDO DE OLIVEIRA FROTA | travessa da vitória, Nº 165 | bairro: Montanhês | Cep: 69.921-554 | WhatsApp: (68) 99976-0124';
+  // Telefone do WhatsApp (será preenchido pelo backend, mas pode ser fixo aqui)
+  const whatsapp = '(68) 99976-0124';
   return (
     <div style={{
       maxWidth: '48rem',
@@ -88,7 +92,7 @@ const PropostaComercial = ({
 
       <div style={{ marginBottom: '1rem' }}>
         <p style={{ fontStyle: 'italic' }}>Autorizo a confecção deste material por cujo conteúdo me responsabilizo, ciente.</p>
-        <p><strong>Assinatura:</strong> Júlio Eduardo - Designer Gráfico</p>
+        <p>Júlio Eduardo - Designer Gráfico</p>
         <p>📍 Rio Branco - AC | 17 de Agosto de 2025</p>
       </div>
 
@@ -98,15 +102,20 @@ const PropostaComercial = ({
         <p>3. Após aprovação, erros ortográficos serão responsabilidade do cliente.</p>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: '3rem', marginTop: '3rem', marginBottom: '10rem' }}>
+      <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'center', gap: '3rem', marginTop: '9rem', marginBottom: '10rem' }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ width: '220px', borderBottom: '2px solid #9ca3af', marginBottom: '0.5rem' }}></div>
           <span style={{ color: '#374151', fontSize: '0.875rem' }}>Assinatura do Cliente</span>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ width: '220px', borderBottom: '2px solid #9ca3af', marginBottom: '0.5rem' }}></div>
-          <span style={{ color: '#374151', fontSize: '0.875rem' }}>Assinatura do Júlio</span>
+          <span style={{ color: '#374151', fontSize: '0.875rem' }}>Assinatura do Designer</span>
         </div>
+      </div>
+
+      {/* Rodapé reduzido: apenas CNPJ e WhatsApp em linha */}
+      <div style={{ marginTop: '2rem', borderTop: '1px solid #e5e7eb', paddingTop: '0.7rem', color: '#374151', fontSize: '12px', textAlign: 'center', display: 'flex', flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: '1.2rem', textTransform: 'uppercase' }}>
+        <span>{rodape}</span>
       </div>
     </div>
   );

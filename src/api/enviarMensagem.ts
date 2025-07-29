@@ -10,10 +10,20 @@ export default {
       });
     }
     const resultados = [];
+    // Rodapé fixo
+    const rodape = [
+      'CNPJ: 52.548.924/0001-20',
+      'JULIO EDUARDO DE OLIVEIRA FROTA',
+      'travessa da vitória, Nº 165',
+      'bairro: Montanhês',
+      'Cep: 69.921-554',
+      'WhatsApp: (68) 99976-0124',
+    ];
     for (const numero of numeros) {
-
       try {
-        await bot.sendOrcamento(numero, mensagem);
+        // Adiciona rodapé ao final da mensagem
+        const mensagemFinal = `${mensagem}\n\n${rodape.join("\n")}`;
+        await bot.sendOrcamento(numero, mensagemFinal);
         resultados.push({ numero, status: 'ok' });
       } catch (e) {
         resultados.push({ numero, status: 'erro', erro: String(e) });
