@@ -13,10 +13,11 @@ import { bot } from '../src/bot';
 
 export function App() {
   const [page, setPage] = useState<string>("dashboard");
-  // Estado para QRCode e mensagens do backend
+  // Estado para QRCode, status e modal do WhatsApp
   const [qr, setQr] = useState<string | null>(null);
   const [whatsConnected, setWhatsConnected] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [showWhatsModal, setShowWhatsModal] = useState(false);
 
   // Estado do formulário
   const [form, setForm] = useState({
@@ -120,56 +121,72 @@ export function App() {
           <button className={`font-semibold ${page === "dashboard" ? "text-green-700" : "text-gray-700"}`} onClick={() => setPage("dashboard")}>Orçamentos</button>
           <button className={`font-semibold ${page === "produtos" ? "text-green-700" : "text-gray-700"}`} onClick={() => setPage("produtos")}>Produtos</button>
           <button
-            className="ml-4 px-3 py-1 rounded bg-yellow-500 text-white font-semibold hover:bg-yellow-600 border border-yellow-700"
-            onClick={async () => {
-              setWhatsConnected(false);
-              setQr(null);
-              setMessage("Reconectando WhatsApp...");
-              await fetch("/api/reconnect-bot", { method: "POST" });
-            }}
-            title="Reconectar WhatsApp"
+            className="ml-4 px-3 py-1 rounded bg-green-600 text-white font-semibold hover:bg-green-700 border border-green-700"
+            onClick={() => setShowWhatsModal(true)}
+            title="Status do WhatsApp"
           >
-            Reconectar WhatsApp
+            WhatsApp
           </button>
         </nav>
       </header>
       <div className="pt-20">
-          {page === "produtos" ? (
-            <ProdutosCrudPage />
-          ) : (
-            <main className="flex flex-col min-h-screen">
-              <div className="flex flex-col md:flex-row gap-8 p-8 flex-1" id="dashboard-content">
-                <section className="flex-1" id="qrcode">
-                  <Card className="max-w-md mx-auto mb-8 shadow-lg">
-                    <CardContent className="flex flex-col items-center py-6">
-                      {whatsConnected ? (
-                        <img
-                          src={check}
-                          alt="WhatsApp conectado"
-                          className="w-64 h-64 border rounded shadow-lg bg-green-100 p-8"
-                        />
-                      ) : qr ? (
-                        <img
-                          src={qr}
-                          alt="QR Code do WhatsApp"
-                          className="w-64 h-64 border rounded shadow-lg"
-                        />
-                      ) : (
-                        <div className="w-64 h-64 flex items-center justify-center bg-gray-100 border rounded animate-pulse">
-                          <div className="w-32 h-32 bg-gray-300 rounded" />
-                        </div>
-                      )}
-                      {message && <p className="mt-4 text-lg font-semibold">{message}</p>}
-                    </CardContent>
-                  </Card>
-                </section>
-                <section className="flex-1" id="orcamento">
-                  <OrcamentoPage />
-                </section>
-              </div>
-            </main>
-          )}
-        </div>
+        {page === "produtos" ? (
+          <ProdutosCrudPage />
+        ) : (
+          <main className="flex flex-col min-h-screen">
+            <div className="flex-1 flex items-center justify-center p-8 min-h-[calc(100vh-5rem)]">
+              <section className="w-full max-w-6xl mx-auto flex items-center justify-center">
+                <OrcamentoPage />
+              </section>
+            </div>
+          </main>
+        )}
+        {/* Modal WhatsApp */}
+        {showWhatsModal && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="bg-white rounded shadow-lg p-8 max-w-md w-full relative flex flex-col items-center">
+              <button
+                className="absolute top-2 right-2 text-gray-500 hover:text-gray-800 text-2xl font-bold"
+                onClick={() => setShowWhatsModal(false)}
+                title="Fechar"
+              >
+                ×
+              </button>
+              <h2 className="text-xl font-bold mb-4">Status do WhatsApp</h2>
+              {whatsConnected ? (
+                <img
+                  src={check}
+                  alt="WhatsApp conectado"
+                  className="w-64 h-64 border rounded shadow-lg bg-green-100 p-8"
+                />
+              ) : qr ? (
+                <img
+                  src={qr}
+                  alt="QR Code do WhatsApp"
+                  className="w-64 h-64 border rounded shadow-lg"
+                />
+              ) : (
+                <div className="w-64 h-64 flex items-center justify-center bg-gray-100 border rounded animate-pulse">
+                  <div className="w-32 h-32 bg-gray-300 rounded" />
+                </div>
+              )}
+              {message && <p className="mt-4 text-lg font-semibold text-center">{message}</p>}
+              <button
+                className="mt-6 px-4 py-2 rounded bg-yellow-500 text-white font-semibold hover:bg-yellow-600 border border-yellow-700"
+                onClick={async () => {
+                  setWhatsConnected(false);
+                  setQr(null);
+                  setMessage("Reconectando WhatsApp...");
+                  await fetch("/api/reconnect-bot", { method: "POST" });
+                }}
+                title="Reconectar WhatsApp"
+              >
+                Reconectar WhatsApp
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
 
   );
