@@ -137,10 +137,10 @@ export function OrcamentoPage() {
     const previsaoStr = previsaoEntrega.toLocaleDateString("pt-BR");
     const msg = produtos.map((p, idx) =>
       p.materialSelecionado ?
-        `${idx + 1}. ${p.materialSelecionado} (${p.quantidade}x) - R$${p.valor.toLocaleString("pt-BR", {minimumFractionDigits:2})}` : ''
+        `${idx + 1}. ${p.materialSelecionado} (${p.quantidade}x) - *R$${p.valor.toLocaleString("pt-BR", {minimumFractionDigits:2})}*` : ''
     ).filter(Boolean).join('\n');
     setMensagem(
-      `Orçamento:\n${msg}\nValor total: R$${valorTotal.toLocaleString("pt-BR", {minimumFractionDigits:2})}\nValidade: 7 dias\nPrazo de produção: ${prazoProducao} dias úteis\nData: ${dataStr}\nHora: ${horaStr}\nPrevisão para entrega: ${previsaoStr}`
+      `Orçamento:\n${msg}\nValor total: *R$${valorTotal.toLocaleString("pt-BR", {minimumFractionDigits:2})}*\nValidade: 7 dias\nPrazo de produção: ${prazoProducao} dias úteis\nData: ${dataStr}\nHora: ${horaStr}\nPrevisão para entrega: ${previsaoStr}`
     );
   }, [produtos, valorTotal]);
 
