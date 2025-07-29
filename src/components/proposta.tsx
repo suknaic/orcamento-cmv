@@ -1,6 +1,34 @@
 import Header from '../topo-proposta.png';
 
-const PropostaComercial = () => {
+interface PropostaComercialProps {
+  cliente?: string;
+  validade?: string;
+  desconto?: string;
+  pagamento?: string;
+  orcamento?: {
+    descricao: string;
+    quantidade: number;
+    valorUnitario: number;
+    total: number;
+  }[];
+  total?: number;
+}
+
+const PropostaComercial = ({
+  cliente = 'Manoel Roque',
+  validade = '20 dias',
+  desconto = '',
+  pagamento = 'À vista',
+  orcamento = [
+    {
+      descricao: 'Fachada em ACM de 18m com letras em PVC e lateral adesivado',
+      quantidade: 1,
+      valorUnitario: 10000,
+      total: 10000,
+    },
+  ],
+  total = 10000,
+}: PropostaComercialProps) => {
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white border rounded-lg shadow-lg text-gray-800">
       {/* Header da proposta */}
@@ -10,14 +38,14 @@ const PropostaComercial = () => {
 
       <div className="mb-4">
         <h2 className="text-2xl font-bold text-red-700">ALERTA CIDADE</h2>
-        <p><strong>Cliente:</strong> Manoel Roque</p>
+        <p><strong>Cliente:</strong> {cliente}</p>
         <p><strong>Designer:</strong> Júlio Eduardo | 📞 (68) 99976-0124</p>
       </div>
-
       <div className="mb-4">
-        <p><strong>Validade da proposta:</strong> 20 dias</p>
+        <p><strong>Validade da proposta:</strong> {validade}</p>
         <p><strong>Prazo de entrega:</strong> 2 dias</p>
-        <p><strong>Pagamento:</strong> À vista</p>
+        <p><strong>Pagamento:</strong> {pagamento}</p>
+        {desconto && <p><strong>Desconto:</strong> {desconto}</p>}
       </div>
 
       <table className="w-full border border-gray-300 mb-4">
@@ -31,18 +59,20 @@ const PropostaComercial = () => {
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td className="border px-3 py-2">01</td>
-            <td className="border px-3 py-2">Fachada em ACM de 18m com letras em PVC e lateral adesivado</td>
-            <td className="border px-3 py-2">1</td>
-            <td className="border px-3 py-2">R$ 10.000,00</td>
-            <td className="border px-3 py-2">R$ 10.000,00</td>
-          </tr>
+          {orcamento.map((item, idx) => (
+            <tr key={idx}>
+              <td className="border px-3 py-2">{String(idx + 1).padStart(2, '0')}</td>
+              <td className="border px-3 py-2">{item.descricao}</td>
+              <td className="border px-3 py-2">{item.quantidade}</td>
+              <td className="border px-3 py-2">R$ {item.valorUnitario.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+              <td className="border px-3 py-2">R$ {item.total.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
+            </tr>
+          ))}
         </tbody>
         <tfoot>
           <tr className="bg-gray-50">
             <td className="border px-3 py-2" colSpan={4}>Total com Descontos</td>
-            <td className="border px-3 py-2 font-bold">R$ 10.000,00</td>
+            <td className="border px-3 py-2 font-bold">R$ {total.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
           </tr>
         </tfoot>
       </table>

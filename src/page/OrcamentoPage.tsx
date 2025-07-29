@@ -1,5 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import { PropostaComercial } from "../components/proposta";
+import domtoimage from 'dom-to-image-more';
+import jsPDF from 'jspdf';
 import { ToastContainer, toast } from "react-toastify";
+
+
+  // (Removido daqui, será definido dentro do componente OrcamentoPage)
 
 
 // Tipos de materiais e lógica de cálculo
@@ -30,6 +36,19 @@ function calcularOrcamento(material, tipo, preco, largura, altura, quantidade) {
 
 
 export function OrcamentoPage() {
+
+    // Estado para modal de informações extras
+  const [showInfoModal, setShowInfoModal] = useState<false | 'pdf'>(false);
+  const [info, setInfo] = useState({
+    cliente: "",
+    validade: "7 dias",
+    desconto: "",
+    pagamento: "À vista"
+  });
+  const propostaRef = useRef(null);
+
+
+
   const [contatos, setContatos] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [contatosSelecionados, setContatosSelecionados] = useState([]);
@@ -46,11 +65,25 @@ export function OrcamentoPage() {
   const [valor, setValor] = useState(0);
   const [mensagem, setMensagem] = useState("");
 
+  // Monta os dados do orçamento para passar para o componente PropostaComercial
+  const orcamentoData = [
+    {
+      descricao: mensagem.split('\n')[0]?.replace('Orçamento: ', '') || '',
+      quantidade: quantidade,
+      valorUnitario: preco,
+      total: valor
+    }
+  ];
+
+   // Carrega materiais do backend ao montar
   useEffect(() => {
-    fetch("/api/config")
-      .then((res) => res.json())
-      .then((data) => {
+    fetch('/api/config')
+      .then(res => res.json())
+      .then(data => {
         setMateriais(data.materiais || []);
+      })
+      .catch(() => {
+        toast.error('Erro ao carregar materiais do banco!');
       });
   }, []);
 
@@ -135,29 +168,39 @@ export function OrcamentoPage() {
     setShowModal(true);
   }
 
+  // Substituir handleEnviarParaSelecionados para gerar e enviar PDF
   async function handleEnviarParaSelecionados() {
     if (contatosSelecionados.length === 0) return;
+    if (!propostaRef.current) return toast.error('Erro ao gerar PDF: componente não encontrado');
     try {
-      const res = await fetch("/api/enviarMensagem", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ numeros: contatosSelecionados, mensagem })
+      // Gera PDF como blob
+      const dataUrl = await domtoimage.toPng(propostaRef.current);
+      // Converte base64 para blob
+      const res = await fetch(dataUrl);
+      const blob = await res.blob();
+      const formData = new FormData();
+      formData.append('pdf', blob, 'proposta.pdf');
+      formData.append('numeros', JSON.stringify(contatosSelecionados));
+      // Envia para backend
+      const resp = await fetch('/api/enviarPdf', {
+        method: 'POST',
+        body: formData
       });
       let data = null;
       try {
-        data = await res.json();
+        data = await resp.json();
       } catch (jsonErr) {
         toast.error("Erro ao processar resposta do servidor. Tente novamente.");
         setShowModal(false);
         return;
       }
       if (data && data.ok) {
-        toast.success("Mensagem enviada para os contatos selecionados!");
+        toast.success("PDF enviado para os contatos selecionados!");
       } else {
-        toast.error("Falha ao enviar mensagem: " + (data?.error || "Erro desconhecido"));
+        toast.error("Falha ao enviar PDF: " + (data?.error || "Erro desconhecido"));
       }
     } catch (e) {
-      toast.error("Erro ao enviar mensagem: " + e);
+      toast.error("Erro ao enviar PDF: " + e);
     }
     setShowModal(false);
   }
@@ -255,6 +298,93 @@ export function OrcamentoPage() {
           >
             Enviar para WhatsApp
           </button>
+          <button
+            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-semibold"
+            type="button"
+            onClick={() => setShowInfoModal('pdf')}
+          >
+            Enviar PDF
+          </button>
+        </div>
+        {/* Modal de informações extras */}
+        {showInfoModal === 'pdf' && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="bg-white rounded shadow-lg p-8 max-w-md w-full relative">
+              <h3 className="text-xl font-bold mb-4">Informações extras</h3>
+              <div className="flex flex-col gap-3">
+                <label>
+                  Cliente:
+                  <input
+                    className="border rounded px-2 py-1 w-full mt-1"
+                    name="cliente"
+                    value={info.cliente}
+                    onChange={e => setInfo({ ...info, cliente: e.target.value })}
+                  />
+                </label>
+                <label>
+                  Validade da proposta:
+                  <input
+                    className="border rounded px-2 py-1 w-full mt-1"
+                    name="validade"
+                    value={info.validade}
+                    onChange={e => setInfo({ ...info, validade: e.target.value })}
+                  />
+                </label>
+                <label>
+                  Desconto:
+                  <input
+                    className="border rounded px-2 py-1 w-full mt-1"
+                    name="desconto"
+                    value={info.desconto}
+                    onChange={e => setInfo({ ...info, desconto: e.target.value })}
+                  />
+                </label>
+                <label>
+                  Forma de pagamento:
+                  <input
+                    className="border rounded px-2 py-1 w-full mt-1"
+                    name="pagamento"
+                    value={info.pagamento}
+                    onChange={e => setInfo({ ...info, pagamento: e.target.value })}
+                  />
+                </label>
+              </div>
+              <div className="flex gap-2 justify-end mt-6">
+                <button
+                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
+                  onClick={() => setShowInfoModal(false)}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className="px-4 py-2 rounded bg-blue-600 text-white font-semibold hover:bg-blue-700"
+                  onClick={async () => {
+                    setShowInfoModal(false);
+                    // Após preencher info extra, abrir modal de contatos para envio do PDF
+                    const res = await fetch("/api/contatos");
+                    const lista = await res.json();
+                    setContatos(lista);
+                    setShowModal(true);
+                  }}
+                >
+                  Avançar
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* Renderização invisível do PropostaComercial para gerar PDF */}
+        <div style={{ position: 'absolute', left: '-9999px', top: 0 }}>
+          <div ref={propostaRef}>
+            <PropostaComercial
+              cliente={info.cliente || 'Cliente'}
+              validade={info.validade || '7 dias'}
+              desconto={info.desconto}
+              pagamento={info.pagamento || 'À vista'}
+              orcamento={orcamentoData}
+              total={valor}
+            />
+          </div>
         </div>
 
         {/* Modal de seleção de contatos */}
