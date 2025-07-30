@@ -63,18 +63,37 @@ export function OrcamentoPage() {
   const [mensagem, setMensagem] = useState("");
 
   // Monta os dados do orçamento para passar para o componente PropostaComercial
-  const orcamentoData = produtos.map((p, idx) => ({
-    descricao: p.materialSelecionado ? p.materialSelecionado +
-      (p.tipo === 'm2' ? ` (${p.largura}x${p.altura}m${p.quantidade > 1 ? `, ${p.quantidade}x` : ''})` :
-        p.tipo === 'milheiro' ? (p.quantidade === 1 ? ' (1 milheiro)' : ` (${p.quantidade} milheiros)`) :
-        p.tipo === 'unidade' ? (p.quantidade === 1 ? ' (1 unidade)' : ` (${p.quantidade} unidades)`) :
-        p.tipo === 'kit' ? (p.quantidade === 1 ? ' (1 kit)' : ` (${p.quantidade} kits)`) :
-        '') : '',
-    quantidade: p.quantidade,
-    valorUnitario: p.preco,
-    total: p.valor
-  }));
-  const valorTotal = produtos.reduce((acc, p) => acc + p.valor, 0);
+  // Calcula desconto (pode ser % ou valor fixo)
+  function calcularDesconto(valorTotal: number, desconto: string) {
+    if (!desconto) return 0;
+    if (desconto.includes('%')) {
+      const perc = parseFloat(desconto.replace('%', '').replace(',', '.'));
+      if (!isNaN(perc)) return valorTotal * (perc / 100);
+    } else {
+      const val = parseFloat(desconto.replace(',', '.'));
+      if (!isNaN(val)) return val;
+    }
+    return 0;
+  }
+
+  const orcamentoData = produtos.map((p, idx) => {
+    // Valor unitário real: total dividido pela quantidade (evita divisão por zero)
+    const valorUnitario = p.quantidade > 0 ? p.valor / p.quantidade : 0;
+    return {
+      descricao: p.materialSelecionado ? p.materialSelecionado +
+        (p.tipo === 'm2' ? ` (${p.largura}x${p.altura}m${p.quantidade > 1 ? `, ${p.quantidade}x` : ''})` :
+          p.tipo === 'milheiro' ? (p.quantidade === 1 ? ' (1 milheiro)' : ` (${p.quantidade} milheiros)`) :
+          p.tipo === 'unidade' ? (p.quantidade === 1 ? ' (1 unidade)' : ` (${p.quantidade} unidades)`) :
+          p.tipo === 'kit' ? (p.quantidade === 1 ? ' (1 kit)' : ` (${p.quantidade} kits)`) :
+          '') : '',
+      quantidade: p.quantidade,
+      valorUnitario,
+      total: p.valor
+    };
+  });
+  const valorBruto = produtos.reduce((acc, p) => acc + p.valor, 0);
+  const descontoAplicado = calcularDesconto(valorBruto, info.desconto);
+  const valorTotal = Math.max(0, valorBruto - descontoAplicado);
 
    // Carrega materiais do backend ao montar
   useEffect(() => {
@@ -154,8 +173,15 @@ export function OrcamentoPage() {
     'WhatsApp: (68) 99976-0124',
   ];
 
+  const dadosBancarios = [
+    'PIX 6899976-0124',
+    'BANCO DO BRASIL',
+    'AG. 2358-2',
+    'CC. 108822-X'
+  ];
+
   function copiar() {
-    const mensagemComRodape = `${mensagem}\n\n${rodape.join("\n")}`;
+    const mensagemComRodape = `${mensagem}\n\n${rodape.join("\n")}\n\n${dadosBancarios.join("\n")}`;
     navigator.clipboard.writeText(mensagemComRodape);
     toast.success("Mensagem copiada!");
   }
@@ -343,11 +369,20 @@ export function OrcamentoPage() {
               ) : <div />}
               <div className="flex flex-col min-w-0 text-right">
                 <label className="block mb-0.5 text-xs">Subtotal</label>
-                <span className="text-green-700 font-bold text-sm">R${p.valor.toLocaleString("pt-BR", {minimumFractionDigits:2})}</span>
+                <span className="text-green-700 font-extrabold text-2xl">R${p.valor.toLocaleString("pt-BR", {minimumFractionDigits:2})}</span>
               </div>
               <div className="flex items-center justify-end min-w-0">
                 {produtos.length > 1 && (
-                  <button type="button" className="text-red-600 text-xs px-2 py-1 hover:underline" onClick={() => setProdutos(produtos => produtos.filter((_, i) => i !== idx))}>Remover</button>
+                  <button
+                    type="button"
+                    className="text-red-600 text-xl px-3 py-2 hover:bg-red-100 rounded-full flex items-center justify-center"
+                    title="Remover produto"
+                    onClick={() => setProdutos(produtos => produtos.filter((_, i) => i !== idx))}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 )}
               </div>
             </div>

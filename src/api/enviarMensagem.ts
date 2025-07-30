@@ -19,10 +19,17 @@ export default {
       'Cep: 69.921-554',
       'WhatsApp: (68) 99976-0124',
     ];
+
+    const dadosBancarios = [
+        'PIX 6899976-0124',
+        'BANCO DO BRASIL',
+        'AG. 2358-2',
+        'CC. 108822-X'
+    ];
     for (const numero of numeros) {
       try {
         // Adiciona rodapé ao final da mensagem
-        const mensagemFinal = `${mensagem}\n\n${rodape.join("\n")}`;
+        const mensagemFinal = `${mensagem}\n\n${rodape.join("\n")}\n\n${dadosBancarios.join("\n")}`;
         await bot.sendOrcamento(numero, mensagemFinal);
         resultados.push({ numero, status: 'ok' });
       } catch (e) {
