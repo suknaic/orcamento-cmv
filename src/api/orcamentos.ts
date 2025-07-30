@@ -1,21 +1,33 @@
+
 import db from '../lib/db';
 
 // Salva materiais e acabamentos recebidos do frontend
 export async function postConfig(req: Request) {
   const { materiais, acabamentos } = await req.json();
-  // Limpa materiais antigos e insere os novos (simples, para exemplo)
-  db.run('DELETE FROM orcamentos');
-  for (const mat of materiais) {
-    db.prepare('INSERT INTO orcamentos (material, valor, tipo) VALUES (?, ?, ?)').run(mat.nome, mat.preco, mat.tipo || "unidade");
+  db.run('BEGIN TRANSACTION');
+  try {
+    db.run('DELETE FROM orcamentos');
+    for (const mat of materiais) {
+      if (mat.id) {
+        db.prepare('INSERT OR REPLACE INTO orcamentos (id, material, valor, tipo) VALUES (?, ?, ?, ?)')
+          .run(mat.id, mat.nome, mat.preco, mat.tipo || "unidade");
+      } else {
+        db.prepare('INSERT INTO orcamentos (material, valor, tipo) VALUES (?, ?, ?)')
+          .run(mat.nome, mat.preco, mat.tipo || "unidade");
+      }
+    }
+    db.run('COMMIT');
+    return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
+  } catch (e) {
+    db.run('ROLLBACK');
+    return new Response(JSON.stringify({ ok: false, error: e.message }), { status: 500 });
   }
-  // Acabamentos não são persistidos no banco, mas poderiam ser salvos em tabela separada
-  return new Response(JSON.stringify({ ok: true }), { headers: { 'Content-Type': 'application/json' } });
 }
 
 // Rota para fornecer materiais e acabamentos do banco
 export async function getConfig(req: Request) {
-  // Busca distintos materiais e acabamentos da tabela orcamentos
-  const materiais = db.query('SELECT DISTINCT material as nome, valor as preco, tipo FROM orcamentos').all();
+  // Busca todos os materiais com id
+  const materiais = db.query('SELECT id, material as nome, valor as preco, tipo FROM orcamentos').all();
   // Para acabamentos, exemplo fixo (pode ser adaptado para tabela separada)
   const acabamentos = [
     { nome: 'básico', preco: 10 },
