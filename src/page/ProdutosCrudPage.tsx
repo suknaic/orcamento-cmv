@@ -1,11 +1,18 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 // Tipos possíveis para seleção
+export enum TipoProduto {
+  M2 = "m2",
+  Unidade = "unidade",
+  Milheiro = "milheiro",
+  Kit = "kit",
+}
+
 const tipos = [
-  { value: "m2", label: "Metro quadrado (m²)" },
-  { value: "unidade", label: "Unidade" },
-  { value: "milheiro", label: "Milheiro" },
-  { value: "kit", label: "Kit" },
+  { value: TipoProduto.M2, label: "Metro quadrado (m²)" },
+  { value: TipoProduto.Unidade, label: "Unidade" },
+  { value: TipoProduto.Milheiro, label: "Milheiro" },
+  { value: TipoProduto.Kit, label: "Kit" },
 ];
 
 export function ProdutosCrudPage() {
@@ -191,13 +198,14 @@ export function ProdutosCrudPage() {
                 <td className="px-4 text-gray-700 break-words max-w-[80px] sm:max-w-xs">{p.tipo || "unidade"}</td>
                 <td className="px-4 text-green-700 font-semibold whitespace-nowrap">R$ {Number(p.preco).toLocaleString("pt-BR", {minimumFractionDigits:2})}</td>
                 <td className="px-4 text-center">
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-0">
                   <button
-                    className="inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded-full p-2 mr-2 transition"
+                    className="inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded-full p-2 mr-0 sm:mr-2 transition"
                     title="Editar"
                     onClick={() => editarProduto(p)}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487a2.1 2.1 0 1 1 2.97 2.97L7.5 19.79l-4 1 1-4 12.362-12.303z" />
                     </svg>
                   </button>
                   <button
@@ -206,9 +214,10 @@ export function ProdutosCrudPage() {
                     onClick={() => removerProdutoPorIndice(idx)}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
+                  </div>
                 </td>
               </tr>
             ))}
