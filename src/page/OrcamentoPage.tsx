@@ -585,7 +585,10 @@ export function OrcamentoPage() {
               <div className="flex gap-2 justify-end">
                 <button
                   className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false);
+                    setContatosSelecionados([]);
+                  }}
                 >
                   Cancelar
                 </button>
