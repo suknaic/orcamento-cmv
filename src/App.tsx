@@ -1,14 +1,10 @@
 
-import { Card, CardContent } from "./components/ui/card";
 import { useEffect, useState } from "react";
 import { OrcamentoPage } from "./page/OrcamentoPage";
 import { ProdutosCrudPage } from "./page/ProdutosCrudPage";
 
 import check from "./check.svg";
 import Logo from './logo-julio.png';
-
-
-import { bot } from '../src/bot';
 
 
 export function App() {
@@ -115,7 +111,7 @@ export function App() {
       <header className="fixed bg-white left-0 top-0 right-0 h-20 flex items-center px-8 z-20 shadow justify-between">
         <div className="flex items-center gap-4">
           <img src={Logo} alt="Logo" className="h-12 " />
-          <span className="text-2xl font-bold">Dashboard de Orçamentos</span>
+          <span className="text-2xl font-bold">Painel de Orçamentos</span>
         </div>
         <nav className="flex gap-6 items-center">
           <button className={`font-semibold ${page === "dashboard" ? "text-green-700" : "text-gray-700"}`} onClick={() => setPage("dashboard")}>Orçamentos</button>

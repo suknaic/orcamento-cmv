@@ -21,6 +21,7 @@ export function ProdutosCrudPage() {
   const [editando, setEditando] = useState(null);
   const [loading, setLoading] = useState(false);
   const [ordem, setOrdem] = useState({ campo: 'nome', direcao: 'asc' });
+  const [busca, setBusca] = useState("");
 
   // Carregar produtos do backend (usando /api/config como base)
   useEffect(() => {
@@ -114,15 +115,37 @@ export function ProdutosCrudPage() {
     });
   }
 
-  // Usa apenas os produtos retornados do backend, sem gerar id no frontend
-  const produtosOrdenados = ordenarLista(produtos);
+  // Filtro de busca
+  const produtosFiltrados = produtos.filter(p => {
+    const termo = busca.trim().toLowerCase();
+    if (!termo) return true;
+    return (
+      (p.nome || "").toLowerCase().includes(termo) ||
+      (p.tipo || "").toLowerCase().includes(termo) ||
+      String(p.preco).toLowerCase().includes(termo)
+    );
+  });
+  // Paginação
+  const [pagina, setPagina] = useState(1);
+  const porPagina = 10;
+  const produtosOrdenados = ordenarLista(produtosFiltrados);
+  const totalPaginas = Math.max(1, Math.ceil(produtosOrdenados.length / porPagina));
+  const produtosPaginados = produtosOrdenados.slice((pagina - 1) * porPagina, pagina * porPagina);
 
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded shadow p-4 sm:p-8 mt-4 sm:mt-8">
-      <h2 className="text-2xl font-bold mb-6">Cadastro de Produtos</h2>
-      <form onSubmit={salvarProduto} className="flex flex-col sm:flex-row gap-2 mb-6 flex-wrap items-end">
+    <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-4 sm:p-8 mt-4 sm:mt-10 border border-gray-100">
+      <h2 className="text-3xl font-extrabold mb-8 text-blue-800 tracking-tight text-center">Cadastro de Produtos</h2>
+      <div className="mb-4">
         <input
-          className="border rounded px-2 py-1 w-full sm:w-auto"
+          className="border border-blue-200 rounded px-3 py-2 w-full focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none shadow-sm"
+          placeholder="Buscar produto por nome, tipo ou preço..."
+          value={busca}
+          onChange={e => { setBusca(e.target.value); setPagina(1); }}
+        />
+      </div>
+      <form onSubmit={salvarProduto} className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto items-end mb-6">
+        <input
+          className="border border-blue-200 rounded px-3 py-2 w-full sm:w-48 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none shadow-sm"
           name="nome"
           placeholder="Nome do produto"
           value={novo.nome}
@@ -130,7 +153,7 @@ export function ProdutosCrudPage() {
           required
         />
         <select
-          className="border rounded px-2 py-1 w-full sm:w-auto"
+          className="border border-blue-200 rounded px-3 py-2 w-full sm:w-40 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none shadow-sm"
           name="tipo"
           value={novo.tipo}
           onChange={handleChange}
@@ -138,7 +161,7 @@ export function ProdutosCrudPage() {
           {tipos.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
         <input
-          className="border rounded px-2 py-1 w-full sm:w-auto"
+          className="border border-blue-200 rounded px-3 py-2 w-full sm:w-32 focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none shadow-sm"
           name="preco"
           type="number"
           min={0}
@@ -149,7 +172,7 @@ export function ProdutosCrudPage() {
           required
         />
         <button
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto"
+          className="bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold py-2 px-6 rounded shadow-md transition w-full sm:w-auto"
           type="submit"
           disabled={loading}
         >
@@ -157,7 +180,7 @@ export function ProdutosCrudPage() {
         </button>
         {editando && (
           <button
-            className="sm:ml-2 text-gray-600 border px-3 py-2 rounded w-full sm:w-auto"
+            className="sm:ml-2 text-gray-600 border border-gray-300 bg-gray-100 hover:bg-gray-200 px-4 py-2 rounded w-full sm:w-auto transition"
             type="button"
             onClick={() => { setNovo({ id: '', nome: "", tipo: "m2", preco: 0 }); setEditando(null); }}
           >
@@ -165,43 +188,43 @@ export function ProdutosCrudPage() {
           </button>
         )}
       </form>
-      <div className="overflow-x-auto">
-        <table className="min-w-[600px] w-full text-left border-t rounded-lg overflow-hidden shadow-sm text-sm sm:text-base">
-          <thead>
-            <tr className="bg-blue-50 border-b">
-              <th className="py-3 px-4 font-bold text-gray-700 text-base cursor-pointer select-none" onClick={() => handleOrdenar('nome')}>
+      <div className="overflow-x-auto rounded-xl border border-gray-100 shadow-sm bg-white">
+        <table className="min-w-[600px] w-full text-left rounded-xl overflow-hidden text-sm sm:text-base">
+          <thead className="sticky top-0 z-10 bg-gradient-to-r from-blue-50 to-blue-100 border-b">
+            <tr>
+              <th className="py-3 px-4 font-bold text-blue-900 text-base cursor-pointer select-none whitespace-nowrap" onClick={() => handleOrdenar('nome')}>
                 Nome
                 {ordem.campo === 'nome' && (
                   <span className="ml-1 text-xs">{ordem.direcao === 'asc' ? '▲' : '▼'}</span>
                 )}
               </th>
-              <th className="px-4 font-bold text-gray-700 text-base cursor-pointer select-none" onClick={() => handleOrdenar('tipo')}>
+              <th className="px-4 font-bold text-blue-900 text-base cursor-pointer select-none whitespace-nowrap" onClick={() => handleOrdenar('tipo')}>
                 Tipo
                 {ordem.campo === 'tipo' && (
                   <span className="ml-1 text-xs">{ordem.direcao === 'asc' ? '▲' : '▼'}</span>
                 )}
               </th>
-              <th className="px-4 font-bold text-gray-700 text-base cursor-pointer select-none" onClick={() => handleOrdenar('preco')}>
+              <th className="px-4 font-bold text-blue-900 text-base cursor-pointer select-none whitespace-nowrap" onClick={() => handleOrdenar('preco')}>
                 Preço base
                 {ordem.campo === 'preco' && (
                   <span className="ml-1 text-xs">{ordem.direcao === 'asc' ? '▲' : '▼'}</span>
                 )}
               </th>
-              <th className="px-4 font-bold text-gray-700 text-base text-center">Ações</th>
+              <th className="px-4 font-bold text-blue-900 text-base text-center whitespace-nowrap">Ações</th>
             </tr>
           </thead>
           <tbody>
-            {produtosOrdenados.map((p, idx) => (
+            {produtosPaginados.map((p, idx) => (
               <tr
                 key={p.id}
                 className={
-                  `border-b transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50`
+                  `border-b transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-blue-50'} hover:bg-blue-100`
                 }
               >
-                <td className="py-3 px-4 font-medium text-gray-800 break-words max-w-[120px] sm:max-w-xs">{p.nome}</td>
-                <td className="px-4 text-gray-700 break-words max-w-[80px] sm:max-w-xs">{p.tipo || "unidade"}</td>
-                <td className="px-4 text-green-700 font-semibold whitespace-nowrap">R$ {Number(p.preco).toLocaleString("pt-BR", {minimumFractionDigits:2})}</td>
-                <td className="px-4 text-center">
+                <td className="py-3 px-4 font-medium text-gray-900 break-words max-w-[120px] sm:max-w-xs align-middle">{p.nome}</td>
+                <td className="px-4 text-blue-800 break-words max-w-[80px] sm:max-w-xs align-middle">{p.tipo || "unidade"}</td>
+                <td className="px-4 text-green-700 font-bold whitespace-nowrap align-middle">R$ {Number(p.preco).toLocaleString("pt-BR", {minimumFractionDigits:2})}</td>
+                <td className="px-4 text-center align-middle">
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-0">
                   <button
                     className="inline-flex items-center justify-center text-blue-600 hover:bg-blue-100 rounded-full p-2 mr-0 sm:mr-2 transition"
@@ -227,6 +250,26 @@ export function ProdutosCrudPage() {
             ))}
           </tbody>
         </table>
+        {/* Paginação */}
+        <div className="flex flex-wrap items-center justify-center gap-2 py-4">
+          <button
+            className="px-3 py-1 rounded border border-blue-200 bg-white text-blue-700 font-semibold disabled:opacity-50"
+            onClick={() => setPagina(p => Math.max(1, p - 1))}
+            disabled={pagina === 1}
+          >Anterior</button>
+          {Array.from({ length: totalPaginas }, (_, i) => i + 1).map(pag => (
+            <button
+              key={pag}
+              className={`px-3 py-1 rounded border ${pagina === pag ? 'bg-blue-600 text-white' : 'bg-white text-blue-700'} font-semibold`}
+              onClick={() => setPagina(pag)}
+            >{pag}</button>
+          ))}
+          <button
+            className="px-3 py-1 rounded border border-blue-200 bg-white text-blue-700 font-semibold disabled:opacity-50"
+            onClick={() => setPagina(p => Math.min(totalPaginas, p + 1))}
+            disabled={pagina === totalPaginas}
+          >Próxima</button>
+        </div>
       </div>
     </div>
   );

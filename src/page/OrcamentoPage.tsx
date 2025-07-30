@@ -1,10 +1,9 @@
 import { useEffect, useState, useRef } from "react";
-import { AnimatedSubscribeButton } from "../components/magicui/animated-subscribe-button";
-import { PropostaComercial } from "../components/proposta";
+import { AnimatedSubscribeButton } from "@/components/magicui/animated-subscribe-button";
+import { PropostaComercial } from "@/components/proposta";
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { ToastContainer, toast } from "react-toastify";
-
 
   // (Removido daqui, será definido dentro do componente OrcamentoPage)
 
@@ -37,6 +36,7 @@ function calcularOrcamento(material, tipo, preco, largura, altura, quantidade) {
 
 
 export function OrcamentoPage() {
+  const materialRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [loadingEnviar, setLoadingEnviar] = useState(false);
 
     // Estado para modal de informações extras
@@ -58,7 +58,18 @@ export function OrcamentoPage() {
 
 
   const [materiais, setMateriais] = useState([]);
-  const [produtos, setProdutos] = useState([
+  type ProdutoOrcamento = {
+    materialSelecionado: any;
+    tipo: string;
+    preco: number;
+    largura: string;
+    altura: string;
+    quantidade: number;
+    valor: number;
+    _buscaMaterial?: string;
+    _showDropdown?: boolean;
+  };
+  const [produtos, setProdutos] = useState<ProdutoOrcamento[]>([
     { materialSelecionado: null, tipo: '', preco: 0, largura: '', altura: '', quantidade: 1, valor: 0 }
   ]);
   const [mensagem, setMensagem] = useState("");
@@ -238,7 +249,7 @@ export function OrcamentoPage() {
 
   async function enviarPDFWhatsApp() {
     if (contatosSelecionados.length === 0) return;
-    if (!propostaRef.current) return toast.error('Erro ao gerar PDF: componente não encontrado');
+    if (!propostaRef.current) return toast.error('Erro ao gerar PDF tente novamente');
     setLoadingEnviar(true);
     try {
       // Gera PDF real usando jsPDF
@@ -301,37 +312,82 @@ export function OrcamentoPage() {
   return (
     <>
       <ToastContainer position="top-center" autoClose={3500} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
-      <div className="max-w-3xl mx-auto bg-white rounded shadow p-8">
-        <h2 className="text-2xl font-bold mb-6">Novo Orçamento</h2>
+      <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-4 sm:p-8 mt-4 sm:mt-10 border border-gray-100">
+        <h2 className="text-3xl font-extrabold mb-8 text-blue-800 tracking-tight text-center">Novo Orçamento</h2>
         {produtos.map((p, idx) => (
           <div key={p.materialSelecionado ? p.materialSelecionado + '-' + idx : idx} className="mb-2 border-b pb-2 last:border-b-0 last:pb-0">
             <div
-              className="grid grid-cols-1 sm:grid-cols-[1.2fr_repeat(2,0.8fr)_0.7fr_1fr_auto] gap-x-4 gap-y-2 items-end"
+              className="grid grid-cols-1 md:grid-cols-[minmax(180px,1.7fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(80px,0.8fr)_minmax(110px,1fr)_minmax(60px,0.5fr)] gap-x-2 gap-y-2 items-end"
             >
-              <div className="flex flex-col min-w-0">
-                <label className="block mb-0.5 font-semibold text-md">Material</label>
-                <select
-                  className="border rounded px-2 py-1 min-w-[100px] text-md"
-                  value={p.materialSelecionado || ""}
-                  onChange={e => setProdutos(produtos => produtos.map((prod, i) => {
-                    if (i !== idx) return prod;
-                    // Ao trocar material, reseta campos de m2
-                    return {
-                      ...prod,
-                      materialSelecionado: e.target.value,
-                      largura: '',
-                      altura: '',
-                      quantidade: 1
-                    };
-                  }))}
-                >
-                  <option value="">Selecione...</option>  
-                  {materiais.map((mat, i) => (
-                    <option key={mat.nome} value={mat.nome}>{mat.nome}</option>
-                  ))}
-                </select>
-                {/* Debug visual do tipo */}
-                 <span style={{ fontSize: 10, color: '#888' }}>Tipo detectado: {p.tipo}</span>
+              <div className="flex flex-col">
+                <label className="block mb-0.5 font-semibold text-md">Produtos  </label>
+                <div className="relative min-w-[10px]">
+                  <input
+                    ref={el => { materialRefs.current[idx] = el; }}
+                    type="text"
+                    className="border border-blue-200 rounded px-2 py-1 w-full min-w-[160px] max-w-[200px] focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none shadow-sm text-sm"
+                    placeholder="Buscar Produto..."
+                    value={p._buscaMaterial || ''}
+                    onChange={e => {
+                      const busca = e.target.value;
+                      setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, _buscaMaterial: busca } : prod));
+                    }}
+                    onFocus={e => {
+                      if (!p._showDropdown) {
+                        setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, _showDropdown: true } : { ...prod, _showDropdown: false }));
+                      }
+                    }}
+                    onBlur={e => {
+                      setTimeout(() => {
+                        setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, _showDropdown: false } : prod));
+                      }, 150);
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-500"
+                    tabIndex={-1}
+                    onClick={() => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, _showDropdown: !prod._showDropdown } : { ...prod, _showDropdown: false }))}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+                  </button>
+                  {p._showDropdown && (
+                    <div className="absolute z-20 left-0 right-0 bg-white border border-t-0 rounded-b shadow max-h-56 overflow-y-auto animate-fade-in">
+                      {materiais.filter(mat => {
+                        const busca = (p._buscaMaterial || '').toLowerCase();
+                        return !busca || mat.nome.toLowerCase().includes(busca);
+                      }).length === 0 ? (
+                        <div className="px-3 py-2 text-gray-400 text-sm">Nenhum Produto encontrado</div>
+                      ) : materiais.filter(mat => {
+                        const busca = (p._buscaMaterial || '').toLowerCase();
+                        return !busca || mat.nome.toLowerCase().includes(busca);
+                      }).map(mat => (
+                        <button
+                          type="button"
+                          key={mat.nome}
+                          className={`w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center gap-2 ${p.materialSelecionado === mat.nome ? 'bg-blue-100 font-semibold' : ''}`}
+                          onClick={() => {
+                            setProdutos(produtos => produtos.map((prod, i) => i === idx ? {
+                              ...prod,
+                              materialSelecionado: mat.nome,
+                              preco: mat.preco,
+                              tipo: prod.tipo, // será atualizado pelo useEffect
+                              largura: '',
+                              altura: '',
+                              quantidade: 1,
+                              _buscaMaterial: mat.nome,
+                              _showDropdown: false
+                            } : prod));
+                          }}
+                        >
+                          <span className="truncate max-w-[240px]">{mat.nome}</span>
+                          {mat.preco ? <span className="ml-auto text-xs text-green-700 font-bold">R$ {Number(mat.preco).toLocaleString("pt-BR", {minimumFractionDigits:2})}</span> : null}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+               
               </div>
               {p.tipo && tiposMateriais[p.tipo]?.campos.includes("largura") ? (
                 <div className="flex flex-col min-w-0">
@@ -340,7 +396,7 @@ export function OrcamentoPage() {
                     type="number"
                     min={0}
                     step={0.01}
-                    className="border rounded px-4 py-2 min-w-[120px] text-base"
+                    className="border rounded px-2 py-1 min-w-[80px] max-w-[120px] text-sm"
                     value={p.largura}
                     onChange={e => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, largura: e.target.value } : prod))}
                   />
@@ -353,7 +409,7 @@ export function OrcamentoPage() {
                     type="number"
                     min={0}
                     step={0.01}
-                    className="border rounded px-4 py-2 min-w-[120px] text-base"
+                    className="border rounded px-2 py-1 min-w-[80px] max-w-[120px] text-sm"
                     value={p.altura}
                     onChange={e => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, altura: e.target.value } : prod))}
                   />
@@ -366,25 +422,25 @@ export function OrcamentoPage() {
                     type="number"
                     min={1}
                     step={1}
-                    className="border rounded px-4 py-2 min-w-[90px] text-base"
+                    className="border rounded px-2 py-1 min-w-[60px] max-w-[80px] text-sm"
                     value={p.quantidade}
                     onChange={e => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, quantidade: Number(e.target.value) } : prod))}
                   />
                 </div>
               ) : <div />}
-              <div className="flex flex-col min-w-0 text-right">
-                <label className="block mb-0.5 text-xs">Subtotal</label>
-                <span className="text-green-700 font-extrabold text-2xl">R${p.valor.toLocaleString("pt-BR", {minimumFractionDigits:2})}</span>
-              </div>
-              <div className="flex items-center justify-end min-w-0">
+              <div className="flex flex-row min-w-0 items-end justify-end h-full">
+                <div className="flex flex-col">
+                    <label className="block mb-0.5 text-xs">Subtotal</label>
+                  <span className="text-green-700 font-extrabold text-xl whitespace-nowrap">R${p.valor.toLocaleString("pt-BR", {minimumFractionDigits:2})}</span>
+                </div>
                 {produtos.length > 1 && (
                   <button
                     type="button"
-                    className="text-red-600 text-xl px-3 py-2 hover:bg-red-100 rounded-full flex items-center justify-center"
+                    className="text-red-600 text-lg px-2 py-1 mt-1 hover:bg-red-100 rounded-full flex items-center justify-center"
                     title="Remover produto"
                     onClick={() => setProdutos(produtos => produtos.filter((_, i) => i !== idx))}
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
@@ -395,8 +451,18 @@ export function OrcamentoPage() {
         ))}
         <button
           type="button"
-          className="mb-4 px-4 py-2 rounded bg-blue-500 text-white font-semibold hover:bg-blue-600"
-          onClick={() => setProdutos(produtos => [...produtos, { materialSelecionado: null, tipo: '', preco: 0, largura: '', altura: '', quantidade: 1, valor: 0 }])}
+          className="mb-4 px-4 py-2 rounded bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold shadow-md w-full sm:w-auto"
+          onClick={() => {
+            setProdutos(produtos => {
+              const novos = [...produtos, { materialSelecionado: null, tipo: '', preco: 0, largura: '', altura: '', quantidade: 1, valor: 0, _showDropdown: true }];
+              setTimeout(() => {
+                if (materialRefs.current[novos.length - 1]) {
+                  materialRefs.current[novos.length - 1].focus();
+                }
+              }, 50);
+              return novos.map((prod, i) => i === novos.length - 1 ? { ...prod, _showDropdown: true } : { ...prod, _showDropdown: false });
+            });
+          }}
         >
           + Adicionar produto
         </button>
@@ -551,84 +617,85 @@ export function OrcamentoPage() {
           </div>
         </div>
 
-        {/* Modal de seleção de contatos */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-            <div className="bg-white rounded shadow-lg p-8 max-w-md w-full relative">
-              <h3 className="text-xl font-bold mb-4">Selecione os contatos para envio</h3>
-              <input
-                className="border rounded px-2 py-1 w-full mb-4"
-                placeholder="Buscar por nome ou telefone..."
-                value={buscaContato}
-                onChange={e => setBuscaContato(e.target.value)}
-                autoFocus
-              />
-              <div className="flex flex-col gap-2 mb-4 max-h-60 overflow-y-auto">
-                {contatos.length === 0 ? (
-                  <span className="text-gray-500">Nenhum contato encontrado.</span>
-                ) : contatos
-                  .filter(contato => {
-                    const nome = (contato.nome || "").normalize("NFD").replace(/[^\w\s.-]/g, "").toLowerCase();
-                    const busca = (buscaContato || "").normalize("NFD").replace(/[^\w\s.-]/g, "").toLowerCase();
-                    const numero = (contato.numero || "");
-                    const buscaNum = buscaContato.replace(/\D/g, "");
-                    return (
-                      nome.includes(busca) ||
-                      (buscaNum && numero.includes(buscaNum))
-                    );
-                  })
-                  .map(contato => (
-                    <label key={contato.numero} className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={contatosSelecionados.includes(contato.numero)}
-                        onChange={() => handleCheckContato(contato.numero)}
-                      />
-                      <span>{contato.nome} <span className="text-xs text-gray-500">({contato.numero})</span></span>
-                    </label>
-                  ))}
-              </div>
-              <div className="flex gap-2 justify-end">
-                <button
-                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
-                  onClick={() => {
-                    setShowModal(false);
-                    setContatosSelecionados([]);
-                  }}
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="px-4 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-700 flex items-center gap-2"
-                  disabled={contatosSelecionados.length === 0 || loadingEnviar}
-                  onClick={enviarMensagemWhatsApp}
-                >
-                  {loadingEnviar && (
-                    <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z" />
-                    </svg>
-                  )}
-                  {loadingEnviar ? "Enviando..." : "Enviar"}
-                </button>
-                <button
-                  className="px-4 py-2 rounded bg-purple-600 text-white font-semibold hover:bg-purple-700 flex items-center gap-2"
-                  disabled={contatosSelecionados.length === 0 || loadingEnviar}
-                  onClick={enviarPDFWhatsApp}
-                >
-                  {loadingEnviar && (
-                    <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z" />
-                    </svg>
-                  )}
-                  {loadingEnviar ? "Enviando..." : "Enviar PDF"}
-                </button>
-              </div>
+      
+      </div>
+      {/* Modal de seleção de contatos */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-white rounded shadow-lg p-8 max-w-md w-full relative">
+            <h3 className="text-xl font-bold mb-4">Selecione os contatos para envio</h3>
+            <input
+              className="border rounded px-2 py-1 w-full mb-4"
+              placeholder="Buscar por nome ou telefone..."
+              value={buscaContato}
+              onChange={e => setBuscaContato(e.target.value)}
+              autoFocus
+            />
+            <div className="flex flex-col gap-2 mb-4 max-h-60 overflow-y-auto">
+              {contatos.length === 0 ? (
+                <span className="text-gray-500">Nenhum contato encontrado.</span>
+              ) : contatos
+                .filter(contato => {
+                  const nome = (contato.nome || "").normalize("NFD").replace(/[^\w\s.-]/g, "").toLowerCase();
+                  const busca = (buscaContato || "").normalize("NFD").replace(/[^\w\s.-]/g, "").toLowerCase();
+                  const numero = (contato.numero || "");
+                  const buscaNum = buscaContato.replace(/\D/g, "");
+                  return (
+                    nome.includes(busca) ||
+                    (buscaNum && numero.includes(buscaNum))
+                  );
+                })
+                .map(contato => (
+                  <label key={contato.numero} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={contatosSelecionados.includes(contato.numero)}
+                      onChange={() => handleCheckContato(contato.numero)}
+                    />
+                    <span>{contato.nome} <span className="text-xs text-gray-500">({contato.numero})</span></span>
+                  </label>
+                ))}
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
+                onClick={() => {
+                  setShowModal(false);
+                  setContatosSelecionados([]);
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-700 flex items-center gap-2"
+                disabled={contatosSelecionados.length === 0 || loadingEnviar}
+                onClick={enviarMensagemWhatsApp}
+              >
+                {loadingEnviar && (
+                  <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                )}
+                {loadingEnviar ? "Enviando..." : "Enviar"}
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-purple-600 text-white font-semibold hover:bg-purple-700 flex items-center gap-2"
+                disabled={contatosSelecionados.length === 0 || loadingEnviar}
+                onClick={enviarPDFWhatsApp}
+              >
+                {loadingEnviar && (
+                  <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                )}
+                {loadingEnviar ? "Enviando..." : "Enviar PDF"}
+              </button>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </>
   );
 
