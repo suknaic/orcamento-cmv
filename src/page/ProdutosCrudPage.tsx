@@ -17,7 +17,7 @@ const tipos = [
 
 export function ProdutosCrudPage() {
   const [produtos, setProdutos] = useState([]);
-  const [novo, setNovo] = useState({ nome: "", tipo: "m2", preco: 0 });
+  const [novo, setNovo] = useState({ id: '', nome: "", tipo: "m2", preco: 0 });
   const [editando, setEditando] = useState(null);
   const [loading, setLoading] = useState(false);
   const [ordem, setOrdem] = useState({ campo: 'nome', direcao: 'asc' });
@@ -33,15 +33,27 @@ export function ProdutosCrudPage() {
     setNovo({ ...novo, [e.target.name]: e.target.value });
   }
 
+
+
   function salvarProduto(e) {
     e.preventDefault();
     setLoading(true);
-    // Permite produtos com mesmo nome, mas tipo diferente
+    let novosMateriais;
+    if (editando) {
+      // Editando: substitui pelo id
+      novosMateriais = produtos.map(p =>
+        p.id === novo.id ? { ...novo, preco: Number(novo.preco) } : p
+      );
+    } else {
+      // Adicionando: não gera id, backend deve gerar
+      const { id, ...novoSemId } = novo;
+      novosMateriais = [
+        ...produtos,
+        { ...novoSemId, preco: Number(novo.preco) }
+      ];
+    }
     const payload = {
-      materiais: [
-        ...produtos.filter(p => !(p.nome === novo.nome && p.tipo === novo.tipo)),
-        { nome: novo.nome, preco: Number(novo.preco), tipo: novo.tipo }
-      ],
+      materiais: novosMateriais,
       acabamentos: [],
     };
     fetch("/api/config", {
@@ -49,7 +61,7 @@ export function ProdutosCrudPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
     }).then(() => {
-      setNovo({ nome: "", tipo: "m2", preco: 0 });
+      setNovo({ id: '', nome: "", tipo: "m2", preco: 0 });
       setEditando(null);
       setLoading(false);
     });
@@ -57,22 +69,13 @@ export function ProdutosCrudPage() {
 
   function editarProduto(prod) {
     setNovo(prod);
-    setEditando(prod.nome + '||' + prod.tipo);
+    setEditando(prod.id);
   }
 
-  function removerProdutoPorIndice(idxOrdenado) {
+  function removerProdutoPorId(id) {
     setLoading(true);
-    // Descobre o produto na lista original a partir do índice na lista ordenada
-    const produtoParaRemover = produtosOrdenados[idxOrdenado];
     const payload = {
-      materiais: produtos.filter((p, idx) => {
-        // Remove apenas o produto que bate nome, tipo e preço (para evitar remover todos iguais)
-        return !(
-          p.nome === produtoParaRemover.nome &&
-          p.tipo === produtoParaRemover.tipo &&
-          Number(p.preco) === Number(produtoParaRemover.preco)
-        );
-      }),
+      materiais: produtos.filter(p => p.id !== id),
       acabamentos: [],
     };
     fetch("/api/config", {
@@ -111,6 +114,7 @@ export function ProdutosCrudPage() {
     });
   }
 
+  // Usa apenas os produtos retornados do backend, sem gerar id no frontend
   const produtosOrdenados = ordenarLista(produtos);
 
   return (
@@ -155,7 +159,7 @@ export function ProdutosCrudPage() {
           <button
             className="sm:ml-2 text-gray-600 border px-3 py-2 rounded w-full sm:w-auto"
             type="button"
-            onClick={() => { setNovo({ nome: "", tipo: "m2", preco: 0 }); setEditando(null); }}
+            onClick={() => { setNovo({ id: '', nome: "", tipo: "m2", preco: 0 }); setEditando(null); }}
           >
             Cancelar
           </button>
@@ -189,7 +193,7 @@ export function ProdutosCrudPage() {
           <tbody>
             {produtosOrdenados.map((p, idx) => (
               <tr
-                key={p.nome + '||' + p.tipo + '||' + idx}
+                key={p.id}
                 className={
                   `border-b transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50`
                 }
@@ -211,7 +215,7 @@ export function ProdutosCrudPage() {
                   <button
                     className="inline-flex items-center justify-center text-red-600 hover:bg-red-100 rounded-full p-2 transition"
                     title="Remover"
-                    onClick={() => removerProdutoPorIndice(idx)}
+                    onClick={() => removerProdutoPorId(p.id)}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
