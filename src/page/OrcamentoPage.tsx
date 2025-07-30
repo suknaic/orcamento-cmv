@@ -270,7 +270,7 @@ export function OrcamentoPage() {
   return (
     <>
       <ToastContainer position="top-center" autoClose={3500} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
-      <div className="max-w-xl mx-auto bg-white rounded shadow p-8">
+      <div className="max-w-3xl mx-auto bg-white rounded shadow p-8">
         <h2 className="text-2xl font-bold mb-6">Novo Orçamento</h2>
         {produtos.map((p, idx) => (
           <div key={p.materialSelecionado ? p.materialSelecionado + '-' + idx : idx} className="mb-2 border-b pb-2 last:border-b-0 last:pb-0">
@@ -278,7 +278,7 @@ export function OrcamentoPage() {
               className="grid grid-cols-1 sm:grid-cols-[1.2fr_repeat(2,0.8fr)_0.7fr_1fr_auto] gap-x-4 gap-y-2 items-end"
             >
               <div className="flex flex-col min-w-0">
-                <label className="block mb-0.5 font-semibold text-xs">Material</label>
+                <label className="block mb-0.5 font-semibold text-md">Material</label>
                 <select
                   className="border rounded px-2 py-1 min-w-[100px] text-md"
                   value={p.materialSelecionado || ""}
@@ -300,6 +300,7 @@ export function OrcamentoPage() {
                   ))}
                 </select>
                 {/* Debug visual do tipo */}
+                 <span style={{ fontSize: 10, color: '#888' }}>Tipo detectado: {p.tipo}</span>
               </div>
               {p.tipo && tiposMateriais[p.tipo]?.campos.includes("largura") ? (
                 <div className="flex flex-col min-w-0">
@@ -308,7 +309,7 @@ export function OrcamentoPage() {
                     type="number"
                     min={0}
                     step={0.01}
-                    className="border rounded px-2 py-1 min-w-[60px] text-xs"
+                    className="border rounded px-4 py-2 min-w-[120px] text-base"
                     value={p.largura}
                     onChange={e => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, largura: e.target.value } : prod))}
                   />
@@ -321,7 +322,7 @@ export function OrcamentoPage() {
                     type="number"
                     min={0}
                     step={0.01}
-                    className="border rounded px-2 py-1 min-w-[60px] text-xs"
+                    className="border rounded px-4 py-2 min-w-[120px] text-base"
                     value={p.altura}
                     onChange={e => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, altura: e.target.value } : prod))}
                   />
@@ -334,7 +335,7 @@ export function OrcamentoPage() {
                     type="number"
                     min={1}
                     step={1}
-                    className="border rounded px-2 py-1 min-w-[50px] text-xs"
+                    className="border rounded px-4 py-2 min-w-[90px] text-base"
                     value={p.quantidade}
                     onChange={e => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, quantidade: Number(e.target.value) } : prod))}
                   />
