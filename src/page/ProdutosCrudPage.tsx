@@ -173,7 +173,7 @@ export function ProdutosCrudPage() {
           <tbody>
             {produtosOrdenados.map((p, idx) => (
               <tr
-                key={p.nome + '||' + p.tipo}
+                key={p.nome + '||' + p.tipo + '||' + idx}
                 className={
                   `border-b transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50`
                 }
