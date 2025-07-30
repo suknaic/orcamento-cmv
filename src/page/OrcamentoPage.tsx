@@ -273,7 +273,7 @@ export function OrcamentoPage() {
       <div className="max-w-xl mx-auto bg-white rounded shadow p-8">
         <h2 className="text-2xl font-bold mb-6">Novo Orçamento</h2>
         {produtos.map((p, idx) => (
-          <div key={idx} className="mb-2 border-b pb-2 last:border-b-0 last:pb-0">
+          <div key={p.materialSelecionado ? p.materialSelecionado + '-' + idx : idx} className="mb-2 border-b pb-2 last:border-b-0 last:pb-0">
             <div
               className="grid grid-cols-1 sm:grid-cols-[1.2fr_repeat(2,0.8fr)_0.7fr_1fr_auto] gap-x-4 gap-y-2 items-end"
             >
@@ -282,13 +282,24 @@ export function OrcamentoPage() {
                 <select
                   className="border rounded px-2 py-1 min-w-[100px] text-md"
                   value={p.materialSelecionado || ""}
-                  onChange={e => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, materialSelecionado: e.target.value } : prod))}
+                  onChange={e => setProdutos(produtos => produtos.map((prod, i) => {
+                    if (i !== idx) return prod;
+                    // Ao trocar material, reseta campos de m2
+                    return {
+                      ...prod,
+                      materialSelecionado: e.target.value,
+                      largura: '',
+                      altura: '',
+                      quantidade: 1
+                    };
+                  }))}
                 >
                   <option value="">Selecione...</option>  
                   {materiais.map((mat, i) => (
-                    <option key={i} value={mat.nome}>{mat.nome}</option>
+                    <option key={mat.nome} value={mat.nome}>{mat.nome}</option>
                   ))}
                 </select>
+                {/* Debug visual do tipo */}
               </div>
               {p.tipo && tiposMateriais[p.tipo]?.campos.includes("largura") ? (
                 <div className="flex flex-col min-w-0">
