@@ -35,20 +35,21 @@ class WhatsAppBot {
       qrcode.toDataURL(qr, (err, url) => {
         if (!err && url) {
           io.emit('qr', url);
-          io.emit('message', '© QRCode recebido, aponte a câmera do seu celular!');
+          io.emit('message', '🎉 QRCode gerado! Aponte a câmera do seu celular ');
+          console.log("🔑 QRCode gerado! Escaneie para conectar-se ao WhatsApp!");
         }
       });
     });
 
     this.client.on("ready", () => {
       this.ready = true;
-      console.log("Cliente WhatsApp está pronto!");
+      console.log("✅ Cliente WhatsApp está pronto");
       io.emit('connected');
     });
 
     this.client.on("disconnected", () => {
       this.ready = false;
-      io.emit('disconnected');
+      console.log("⚠️ Bot desconectado do WhatsApp");
     });
   }
 
@@ -56,7 +57,8 @@ class WhatsAppBot {
     this.ready = false;
     await this.client.initialize();
     // O evento 'qr' será emitido automaticamente pelo client após initialize se necessário
-    console.log("🤖 Bot do WhatsApp iniciado!");
+    io.emit('message', '⏳ Iniciando o bot do WhatsApp...');
+    console.log("🤖 Bot do WhatsApp iniciado");
   }
 
   public async isConnected() {
@@ -82,7 +84,7 @@ class WhatsAppBot {
   }
 
   public async disconnect() {
-    console.log("Desconectando o bot do WhatsApp...");
+    console.log("👋 Desconectando o bot do WhatsApp...");
     this.ready = false;
     await this.client.destroy();
     this.initializeEvents();
