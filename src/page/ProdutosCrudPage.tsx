@@ -53,10 +53,19 @@ export function ProdutosCrudPage() {
     setEditando(prod.nome + '||' + prod.tipo);
   }
 
-  function removerProduto(nome, tipo) {
+  function removerProdutoPorIndice(idxOrdenado) {
     setLoading(true);
+    // Descobre o produto na lista original a partir do índice na lista ordenada
+    const produtoParaRemover = produtosOrdenados[idxOrdenado];
     const payload = {
-      materiais: produtos.filter(p => !(p.nome === nome && p.tipo === tipo)),
+      materiais: produtos.filter((p, idx) => {
+        // Remove apenas o produto que bate nome, tipo e preço (para evitar remover todos iguais)
+        return !(
+          p.nome === produtoParaRemover.nome &&
+          p.tipo === produtoParaRemover.tipo &&
+          Number(p.preco) === Number(produtoParaRemover.preco)
+        );
+      }),
       acabamentos: [],
     };
     fetch("/api/config", {
@@ -98,11 +107,11 @@ export function ProdutosCrudPage() {
   const produtosOrdenados = ordenarLista(produtos);
 
   return (
-    <div className="max-w-2xl mx-auto bg-white rounded shadow p-8 mt-8">
+    <div className="max-w-2xl mx-auto bg-white rounded shadow p-4 sm:p-8 mt-4 sm:mt-8">
       <h2 className="text-2xl font-bold mb-6">Cadastro de Produtos</h2>
-      <form onSubmit={salvarProduto} className="flex gap-2 mb-6 flex-wrap items-end">
+      <form onSubmit={salvarProduto} className="flex flex-col sm:flex-row gap-2 mb-6 flex-wrap items-end">
         <input
-          className="border rounded px-2 py-1"
+          className="border rounded px-2 py-1 w-full sm:w-auto"
           name="nome"
           placeholder="Nome do produto"
           value={novo.nome}
@@ -110,7 +119,7 @@ export function ProdutosCrudPage() {
           required
         />
         <select
-          className="border rounded px-2 py-1"
+          className="border rounded px-2 py-1 w-full sm:w-auto"
           name="tipo"
           value={novo.tipo}
           onChange={handleChange}
@@ -118,7 +127,7 @@ export function ProdutosCrudPage() {
           {tipos.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
         </select>
         <input
-          className="border rounded px-2 py-1"
+          className="border rounded px-2 py-1 w-full sm:w-auto"
           name="preco"
           type="number"
           min={0}
@@ -129,7 +138,7 @@ export function ProdutosCrudPage() {
           required
         />
         <button
-          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full sm:w-auto"
           type="submit"
           disabled={loading}
         >
@@ -137,7 +146,7 @@ export function ProdutosCrudPage() {
         </button>
         {editando && (
           <button
-            className="ml-2 text-gray-600 border px-3 py-2 rounded"
+            className="sm:ml-2 text-gray-600 border px-3 py-2 rounded w-full sm:w-auto"
             type="button"
             onClick={() => { setNovo({ nome: "", tipo: "m2", preco: 0 }); setEditando(null); }}
           >
@@ -146,7 +155,7 @@ export function ProdutosCrudPage() {
         )}
       </form>
       <div className="overflow-x-auto">
-        <table className="w-full text-left border-t rounded-lg overflow-hidden shadow-sm">
+        <table className="min-w-[600px] w-full text-left border-t rounded-lg overflow-hidden shadow-sm text-sm sm:text-base">
           <thead>
             <tr className="bg-blue-50 border-b">
               <th className="py-3 px-4 font-bold text-gray-700 text-base cursor-pointer select-none" onClick={() => handleOrdenar('nome')}>
@@ -178,8 +187,8 @@ export function ProdutosCrudPage() {
                   `border-b transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50`
                 }
               >
-                <td className="py-3 px-4 text-md font-medium text-gray-800 whitespace-nowrap">{p.nome}</td>
-                <td className="px-4 text-gray-700 whitespace-nowrap">{p.tipo || "unidade"}</td>
+                <td className="py-3 px-4 font-medium text-gray-800 break-words max-w-[120px] sm:max-w-xs">{p.nome}</td>
+                <td className="px-4 text-gray-700 break-words max-w-[80px] sm:max-w-xs">{p.tipo || "unidade"}</td>
                 <td className="px-4 text-green-700 font-semibold whitespace-nowrap">R$ {Number(p.preco).toLocaleString("pt-BR", {minimumFractionDigits:2})}</td>
                 <td className="px-4 text-center">
                   <button
@@ -194,7 +203,7 @@ export function ProdutosCrudPage() {
                   <button
                     className="inline-flex items-center justify-center text-red-600 hover:bg-red-100 rounded-full p-2 transition"
                     title="Remover"
-                    onClick={() => removerProduto(p.nome, p.tipo)}
+                    onClick={() => removerProdutoPorIndice(idx)}
                   >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
