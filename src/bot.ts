@@ -70,7 +70,6 @@ class WhatsAppBot {
   }
 
   public async sendOrcamento(numero: string, mensagem: string) {
-    console.log('chegou aqui')
     const jid = numero.endsWith("@c.us") ? numero : `${numero}@c.us`;
     return this.client.sendMessage(jid, mensagem);
   }

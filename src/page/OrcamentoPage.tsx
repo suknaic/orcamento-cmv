@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { AnimatedSubscribeButton } from "../components/magicui/animated-subscribe-button";
 import { PropostaComercial } from "../components/proposta";
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -180,10 +181,14 @@ export function OrcamentoPage() {
     'CC. 108822-X'
   ];
 
+
+  // Estado para feedback do botão copiar
+  const [copiado, setCopiado] = useState(false);
   function copiar() {
     const mensagemComRodape = `${mensagem}\n\n${rodape.join("\n")}\n\n${dadosBancarios.join("\n")}`;
     navigator.clipboard.writeText(mensagemComRodape);
-    toast.success("Mensagem copiada!");
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 1500);
   }
 
   async function enviarWhatsApp() {
@@ -408,13 +413,14 @@ export function OrcamentoPage() {
           />
         </div>
         <div className="flex gap-2">
-          <button
-            className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded font-semibold"
-            type="button"
+          <AnimatedSubscribeButton
+            subscribeStatus={copiado}
             onClick={copiar}
+            className="bg-indigo-600 hover:bg-indigo-800 px-4 py-2 rounded font-semibold"
           >
-            Copiar orçamento
-          </button>
+            <span>Copiar orçamento</span>
+            <span>Mensagem copiada!</span>
+          </AnimatedSubscribeButton>
           <button
             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-semibold"
             type="button"
