@@ -126,15 +126,7 @@ export function App() {
       <Navbar onWhatsClick={() => setShowWhatsModal(true)} />
       <div className="pt-20">
         <Routes>
-          <Route path="/" element={
-            <main className="flex flex-col min-h-screen">
-              <div className="flex-1 flex items-center justify-center p-8 min-h-[calc(100vh-5rem)]">
-                <section className="w-full max-w-6xl mx-auto flex items-center justify-center">
-                  <OrcamentoPage />
-                </section>
-              </div>
-            </main>
-          } />
+          <Route path="/" element={<OrcamentoPage />} />
           <Route path="/produtos" element={<ProdutosCrudPage />} />
         </Routes>
         {/* Modal WhatsApp */}

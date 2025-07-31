@@ -3,9 +3,11 @@ import qrcode from "qrcode";
 import { Client, LocalAuth, MessageMedia } from "whatsapp-web.js";
 
 
+
 class WhatsAppBot {
   private client: Client;
   private ready: boolean = false;
+  private ultimoQRCodeGerado: string | null = null;
 
   constructor() {
     this.client = this.createClient();
@@ -31,9 +33,23 @@ class WhatsAppBot {
   }
 
   private initializeEvents() {
+    // Sempre que um novo cliente conectar, envie o status atual
+    io.on("connection", (socket) => {
+      if (this.ready) {
+        socket.emit("connected");
+        socket.emit("message", "WhatsApp conectado com sucesso!");
+      } else if (this.ultimoQRCodeGerado) {
+        socket.emit("qr", this.ultimoQRCodeGerado);
+        socket.emit("message", "Aguardando conexão do WhatsApp...");
+      } else {
+        socket.emit("message", "Aguardando conexão do WhatsApp...");
+      }
+    });
+
     this.client.on("qr", (qr) => {
       qrcode.toDataURL(qr, (err, url) => {
         if (!err && url) {
+          this.ultimoQRCodeGerado = url;
           io.emit('qr', url);
           io.emit('message', '🎉 QRCode gerado! Aponte a câmera do seu celular ');
           console.log("🔑 QRCode gerado! Escaneie para conectar-se ao WhatsApp!");
@@ -45,6 +61,7 @@ class WhatsAppBot {
       this.ready = true;
       console.log("✅ Cliente WhatsApp está pronto");
       io.emit('connected');
+      io.emit('message', 'WhatsApp conectado com sucesso!');
     });
 
     this.client.on("disconnected", () => {
