@@ -147,11 +147,14 @@ export function OrcamentoPage() {
     })));
   }, [produtos.map(p => [p.materialSelecionado, p.tipo, p.preco, p.largura, p.altura, p.quantidade].join()).join()]);
 
+  // ...código anterior...
+
   useEffect(() => {
-    // Gera mensagem geral do orçamento
+    // Gera mensagem geral do orçamento com novo formato
     const agora = new Date();
     const dataStr = agora.toLocaleDateString("pt-BR");
     const horaStr = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
     function addBusinessDays(date, days) {
       let result = new Date(date);
       let added = 0;
@@ -163,17 +166,34 @@ export function OrcamentoPage() {
       }
       return result;
     }
+
     const prazoProducao = 2;
     const previsaoEntrega = addBusinessDays(agora, prazoProducao);
     const previsaoStr = previsaoEntrega.toLocaleDateString("pt-BR");
-    const msg = produtos.map((p, idx) =>
-      p.materialSelecionado ?
-        `${idx + 1}. ${p.materialSelecionado} (${p.quantidade}x) - *R$${p.valor.toLocaleString("pt-BR", {minimumFractionDigits:2})}*` : ''
-    ).filter(Boolean).join('\n');
+
+    // NOVO FORMATO DE PRODUTO
+    const msg = produtos.map((p, idx) => {
+      if (!p.materialSelecionado) return '';
+      const quantidade = p.quantidade || 1;
+      const largura = p.largura ? Number(p.largura).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : '';
+      const altura = p.altura ? Number(p.altura).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : '';
+      const tam = (largura && altura) ? `tam. ${largura}x${altura}m` : '';
+      const valorUnit = p.quantidade > 0 ? p.valor / p.quantidade : 0;
+      return [
+        `${quantidade} un. ${p.materialSelecionado}`,
+        tam,
+        `V. Unit.:............................R$ ${valorUnit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+        `TOTAL:.............................*R$${p.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}*`,
+        ''
+      ].filter(Boolean).join('\n');
+    }).filter(Boolean).join('\n\n');
+
     setMensagem(
-      `Orçamento:\n${msg}\nValor total: *R$${valorTotal.toLocaleString("pt-BR", {minimumFractionDigits:2})}*\nValidade: 7 dias\nPrazo de produção: ${prazoProducao} dias úteis\nData: ${dataStr}\nHora: ${horaStr}\nPrevisão para entrega: ${previsaoStr}`
+      `*ORÇAMENTO*:\n${msg}\n\nValor total: *R$${valorTotal.toLocaleString("pt-BR", {minimumFractionDigits:2})}*\nValidade: 7 dias\nPrazo de produção: ${prazoProducao} dias úteis\nData: ${dataStr}\nHora: ${horaStr}\nPrevisão para entrega: ${previsaoStr}`
     );
   }, [produtos, valorTotal]);
+
+// ...código posterior...
 
   // Rodapé fixo para mensagem
   const rodape = [
@@ -428,7 +448,7 @@ export function OrcamentoPage() {
                   />
                 </div>
               ) : <div />}
-              <div className="flex flex-row min-w-0 items-end justify-end h-full">
+              <div className="flex flex-row ml-auto min-w-0 align-middle items-end justify-end h-full">
                 <div className="flex flex-col">
                     <label className="block mb-0.5 text-xs">Subtotal</label>
                   <span className="text-green-700 font-extrabold text-xl whitespace-nowrap">R${p.valor.toLocaleString("pt-BR", {minimumFractionDigits:2})}</span>
@@ -609,7 +629,7 @@ export function OrcamentoPage() {
             <PropostaComercial
               cliente={info.cliente || 'Cliente'}
               validade={info.validade || '7 dias'}
-              desconto={info.desconto}
+              desconto={Number(info.desconto)}
               pagamento={info.pagamento || 'À vista'}
               orcamento={orcamentoData}
               total={valorTotal}

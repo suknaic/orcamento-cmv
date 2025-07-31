@@ -3,7 +3,7 @@ import Header from '../topo-proposta.png';
 interface PropostaComercialProps {
   cliente?: string;
   validade?: string;
-  desconto?: string;
+  desconto?: number;
   pagamento?: string;
   orcamento?: {
     descricao: string;
@@ -17,7 +17,7 @@ interface PropostaComercialProps {
 const PropostaComercial = ({
   cliente = 'Manoel Roque',
   validade = '20 dias',
-  desconto = '',
+  desconto = 10000,
   pagamento = 'À vista',
   orcamento = [
     {
@@ -58,7 +58,7 @@ const PropostaComercial = ({
         <p><strong>Validade da proposta:</strong> {validade}</p>
         <p><strong>Prazo de entrega:</strong> 2 dias</p>
         <p><strong>Pagamento:</strong> {pagamento}</p>
-        {desconto && <p><strong>Desconto:</strong> {desconto}</p>}
+        {desconto && <p><strong>Entrada:</strong> R$ {desconto.toLocaleString("pt-BR", {minimumFractionDigits:2})}</p>}
       </div>
 
       <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '1rem', background: '#fff' }}>
@@ -84,7 +84,7 @@ const PropostaComercial = ({
         </tbody>
         <tfoot>
           <tr style={{ background: '#f9fafb' }}>
-            <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }} colSpan={4}>Total com Descontos</td>
+            <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }} colSpan={4}>Total com Entrada</td>
             <td style={{ border: '1px solid #d1d5db', padding: '0.5rem', fontWeight: 700 }}>R$ {total.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
           </tr>
         </tfoot>
