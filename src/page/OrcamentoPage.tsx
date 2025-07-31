@@ -547,7 +547,7 @@ export function OrcamentoPage() {
                   />
                 </label>
                 <label>
-                  Desconto:
+                  Entrada:
                   <input
                     className="border rounded px-2 py-1 w-full mt-1"
                     name="desconto"
