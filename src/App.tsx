@@ -1,14 +1,13 @@
-
 import { useEffect, useState } from "react";
 import { OrcamentoPage } from "./page/OrcamentoPage";
 import { ProdutosCrudPage } from "./page/ProdutosCrudPage";
-
 import check from "./check.svg";
-import Logo from './logo-julio.png';
+
+import { Routes, Route } from "react-router-dom";
+import { Navbar } from "./components/Navbar";
 
 
 export function App() {
-  const [page, setPage] = useState<string>("dashboard");
   // Estado para QRCode, status e modal do WhatsApp
   const [qr, setQr] = useState<string | null>(null);
   const [whatsConnected, setWhatsConnected] = useState(false);
@@ -107,36 +106,20 @@ export function App() {
 
   return (
     <div className="min-h-screen">
-
-      <header className="fixed bg-white left-0 top-0 right-0 h-20 flex items-center px-8 z-20 shadow justify-between">
-        <div className="flex items-center gap-4">
-          <img src={Logo} alt="Logo" className="h-12 " />
-          <span className="text-2xl font-bold">Painel de Orçamentos</span>
-        </div>
-        <nav className="flex gap-6 items-center">
-          <button className={`font-semibold ${page === "dashboard" ? "text-green-700" : "text-gray-700"}`} onClick={() => setPage("dashboard")}>Orçamentos</button>
-          <button className={`font-semibold ${page === "produtos" ? "text-green-700" : "text-gray-700"}`} onClick={() => setPage("produtos")}>Produtos</button>
-          <button
-            className="ml-4 px-3 py-1 rounded bg-green-600 text-white font-semibold hover:bg-green-700 border border-green-700"
-            onClick={() => setShowWhatsModal(true)}
-            title="Status do WhatsApp"
-          >
-            WhatsApp
-          </button>
-        </nav>
-      </header>
+      <Navbar onWhatsClick={() => setShowWhatsModal(true)} />
       <div className="pt-20">
-        {page === "produtos" ? (
-          <ProdutosCrudPage />
-        ) : (
-          <main className="flex flex-col min-h-screen">
-            <div className="flex-1 flex items-center justify-center p-8 min-h-[calc(100vh-5rem)]">
-              <section className="w-full max-w-6xl mx-auto flex items-center justify-center">
-                <OrcamentoPage />
-              </section>
-            </div>
-          </main>
-        )}
+        <Routes>
+          <Route path="/" element={
+            <main className="flex flex-col min-h-screen">
+              <div className="flex-1 flex items-center justify-center p-8 min-h-[calc(100vh-5rem)]">
+                <section className="w-full max-w-6xl mx-auto flex items-center justify-center">
+                  <OrcamentoPage />
+                </section>
+              </div>
+            </main>
+          } />
+          <Route path="/produtos" element={<ProdutosCrudPage />} />
+        </Routes>
         {/* Modal WhatsApp */}
         {showWhatsModal && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -194,6 +177,5 @@ export function App() {
         )}
       </div>
     </div>
-
   );
 }
