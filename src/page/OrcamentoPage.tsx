@@ -125,10 +125,10 @@ export function OrcamentoPage() {
       if (!p.materialSelecionado) return { ...p };
       const mat = materiais.find(m => m.nome === p.materialSelecionado);
       if (!mat) return { ...p };
-      let tipoDetectado = 'unidade';
-      if (/m2|acm|lona|adesivo|acrílico/i.test(mat.nome)) tipoDetectado = 'm2';
-      if (/milheiro/i.test(mat.nome)) tipoDetectado = 'milheiro';
-      if (/kit/i.test(mat.nome)) tipoDetectado = 'kit';
+      // Se o material já tem tipo definido no banco, respeite-o
+      let tipoDetectado = mat.tipo || 'unidade';
+      // Se não houver tipo no banco, tente inferir pelo nome
+
       return { ...p, tipo: tipoDetectado, preco: mat.preco };
     }));
   }, [materiais, produtos.map(p => p.materialSelecionado).join()]);
