@@ -149,7 +149,7 @@ export function OrcamentosEnviadosPage() {
       const data = await response.json();
       
       if (data.ok) {
-        toast.success(`Mensagem reenviada para ${orcamento.cliente_nome}!`);
+        toast.success(`Mensagem reenviada para ${orcamento.cliente_nome.toUpperCase()}!`);
         fetchOrcamentos(currentPage); // Recarregar lista
       } else {
         toast.error('Erro ao reenviar mensagem: ' + data.error);
@@ -238,7 +238,7 @@ export function OrcamentosEnviadosPage() {
       const pdfBlob = pdf.output('blob');
       
       // Criar mensagem para acompanhar o PDF
-      const mensagem = `📋 *REENVIO DO ORÇAMENTO*\n\nSegue em anexo a proposta comercial em PDF.`;
+      const mensagem = `📋 *REENVIO DO ORÇAMENTO PARA: ${orcamentoSelecionado.cliente_nome.toUpperCase()}*\n\nSegue em anexo a proposta comercial em PDF.`;
       
       // Enviar usando a API correta
       const formData = new FormData();
@@ -268,7 +268,7 @@ export function OrcamentosEnviadosPage() {
       if (data.ok) {
         const sucessos = data.resultados?.filter((r: any) => r.status === 'ok')?.length || 0;
         if (sucessos > 0) {
-          toast.success(`PDF enviado com sucesso para ${orcamentoSelecionado.cliente_nome}!`);
+          toast.success(`PDF enviado com sucesso para ${orcamentoSelecionado.cliente_nome.toUpperCase()}!`);
         } else {
           toast.error('Falha ao enviar PDF. Verifique a conexão do WhatsApp.');
         }
@@ -470,7 +470,7 @@ export function OrcamentosEnviadosPage() {
                     <tr key={orc.id} className="hover:bg-accent/50">
                       <td className="px-4 py-3 text-sm font-mono">#{orc.id}</td>
                       <td className="px-4 py-3 text-sm font-medium">
-                        {renderTooltip(orc.cliente_nome, 20)}
+                        {renderTooltip(orc.cliente_nome.toUpperCase(), 20)}
                       </td>
                       <td className="px-4 py-3 text-sm text-muted-foreground">
                         {orc.cliente_numero || '-'}
@@ -520,7 +520,7 @@ export function OrcamentosEnviadosPage() {
                             <h4 className="font-semibold mb-2 text-foreground">Produtos do Orçamento:</h4>
                             <div className="grid gap-2 text-sm">
                               {orc.produtos.map((produto, idx) => (
-                                <div key={idx} className="border-l-4 border-primary pl-3">
+                                <div key={`produto-${orc.id}-${idx}`} className="border-l-4 border-primary pl-3">
                                   <div className="font-medium text-foreground" title={produto.descricao}>
                                     {produto.descricao}
                                   </div>
@@ -552,11 +552,25 @@ export function OrcamentosEnviadosPage() {
               Anterior
             </button>
             
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const page = Math.max(1, Math.min(currentPage - 2 + i, totalPages - 4 + i));
-              return (
+            {(() => {
+              // Calcular quais páginas mostrar
+              const maxVisiblePages = 5;
+              let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+              let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+              
+              // Ajustar startPage se estivermos próximos do fim
+              if (endPage - startPage + 1 < maxVisiblePages) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+              }
+              
+              const pages = [];
+              for (let i = startPage; i <= endPage; i++) {
+                pages.push(i);
+              }
+              
+              return pages.map(page => (
                 <button
-                  key={page}
+                  key={`page-${page}`}
                   onClick={() => handlePageChange(page)}
                   className={`px-4 py-2 border rounded-lg ${
                     currentPage === page
@@ -566,8 +580,8 @@ export function OrcamentosEnviadosPage() {
                 >
                   {page}
                 </button>
-              );
-            })}
+              ));
+            })()}
             
             <button
               onClick={() => handlePageChange(currentPage + 1)}
@@ -588,7 +602,7 @@ export function OrcamentosEnviadosPage() {
           <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
             <div className="bg-card rounded-lg shadow-lg p-6 max-w-lg w-full mx-4 border border-border">
               <h3 className="text-xl font-bold mb-4 text-foreground">
-                Reenviar Orçamento para: {showReenvioModal.cliente_nome}
+                Reenviar Orçamento para: {showReenvioModal.cliente_nome.toUpperCase()}
               </h3>
               
               <div className="mb-4">
@@ -598,7 +612,7 @@ export function OrcamentosEnviadosPage() {
                     <p className="text-muted-foreground">Nenhum contato disponível</p>
                   ) : (
                     contatos.map((contato: any) => (
-                      <label key={contato.numero} className="flex items-center gap-2 p-1 hover:bg-accent text-foreground">
+                      <label key={`modal-contato-${contato.numero}`} className="flex items-center gap-2 p-1 hover:bg-accent text-foreground">
                         <input
                           type="checkbox"
                           checked={contatosSelecionados.includes(contato.numero)}
@@ -654,7 +668,7 @@ export function OrcamentosEnviadosPage() {
         {(showInfoModal === 'pdf' || showInfoModal === 'whatsapp') && orcamentoSelecionado && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
             <div className="bg-card rounded shadow-lg p-8 max-w-md w-full relative border border-border">
-              <h3 className="text-xl font-bold mb-4 text-foreground">Informações extras - {orcamentoSelecionado.cliente_nome}</h3>
+              <h3 className="text-xl font-bold mb-4 text-foreground">Informações extras - {orcamentoSelecionado.cliente_nome.toUpperCase()}</h3>
               <div className="flex flex-col gap-3">
                 <label className="text-foreground">
                   Cliente:
@@ -714,7 +728,7 @@ export function OrcamentosEnviadosPage() {
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                         </svg>
                       )}
-                      {loadingReenvio ? 'Enviando...' : `Enviar PDF para ${orcamentoSelecionado?.cliente_nome}`}
+                      {loadingReenvio ? 'Enviando...' : `Enviar PDF para ${orcamentoSelecionado?.cliente_nome.toUpperCase()}`}
                     </button>
                     <button
                       className="px-4 py-2 rounded bg-gray-800 text-white font-semibold hover:bg-gray-900"

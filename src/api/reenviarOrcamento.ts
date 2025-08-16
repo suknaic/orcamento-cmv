@@ -91,7 +91,7 @@ export default {
       }).filter(Boolean).join('\n\n');
       
       const mensagem = [
-        `*ORÇAMENTO PARA: ${orcamento.cliente_nome}*`,
+        `*ORÇAMENTO PARA: ${orcamento.cliente_nome.toUpperCase()}*`,
         '',
         msg,
         '',

@@ -41,12 +41,16 @@ const POST = async (req: Request) => {
   if (clienteNome && produtosRaw && valorTotal > 0) {
     try {
       const produtos = JSON.parse(produtosRaw);
+      
+      // Garantir que o nome do cliente não seja genérico
+      const nomeReal = clienteNome === 'Cliente' ? 'Cliente Desconhecido' : clienteNome;
+      
       const result = db.prepare(`
         INSERT INTO orcamentos_enviados 
         (cliente_nome, cliente_numero, produtos, valor_total, tipo_envio, status)
         VALUES (?, ?, ?, ?, ?, ?)
       `).run(
-        clienteNome,
+        nomeReal,
         numeros[0] || null,
         JSON.stringify(produtos),
         valorTotal,

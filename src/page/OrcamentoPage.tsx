@@ -48,6 +48,9 @@ export function OrcamentoPage() {
 
     // Estado para modal de informações extras
   const [showInfoModal, setShowInfoModal] = useState<false | 'pdf'>(false);
+  const [showNomeModal, setShowNomeModal] = useState(false);
+  const [showConfirmaNomeModal, setShowConfirmaNomeModal] = useState(false);
+  const [nomeTemporario, setNomeTemporario] = useState("");
   const [info, setInfo] = useState({
     cliente: "",
     validade: "7 dias",
@@ -251,18 +254,38 @@ export function OrcamentoPage() {
     }
   }
 
+  // Função para confirmar nome antes do envio
+  function confirmarEnvioMensagem() {
+    if (contatosSelecionados.length === 0) return;
+    
+    // Obter nome do primeiro contato selecionado
+    const primeiroContato = contatos.find(c => c.numero === contatosSelecionados[0]);
+    const nomeAtual = info.cliente || primeiroContato?.nome || 'Cliente';
+    
+    // Preencher o modal com o nome atual
+    setNomeTemporario(nomeAtual);
+    setShowConfirmaNomeModal(true);
+  }
+
   // Substituir handleEnviarParaSelecionados para gerar e enviar PDF
   async function enviarMensagemWhatsApp() {
     if (contatosSelecionados.length === 0) return;
+    
     setLoadingEnviar(true);
     try {
+      // Usar o nome confirmado no modal
+      const nomeCliente = nomeTemporario || 'Cliente';
+      
+      // Adicionar cabeçalho com nome do cliente na mensagem
+      const mensagemComCliente = `*ORÇAMENTO PARA: ${nomeCliente.toUpperCase()}*\n\n${mensagem}`;
+      
       const resp = await fetch('/api/enviarMensagem', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           numeros: contatosSelecionados,
-          mensagem,
-          cliente_nome: info.cliente || 'Cliente',
+          mensagem: mensagemComCliente,
+          cliente_nome: nomeCliente,
           produtos: orcamentoData,
           valor_total: valorTotal
         })
@@ -273,6 +296,7 @@ export function OrcamentoPage() {
       } catch (jsonErr) {
         toast.error("Erro ao processar resposta do servidor. Tente novamente.");
         setShowModal(false);
+        setShowConfirmaNomeModal(false);
         return;
       }
       if (data && data.ok) {
@@ -284,6 +308,7 @@ export function OrcamentoPage() {
       toast.error("Erro ao enviar: " + e);
     }
     setShowModal(false);
+    setShowConfirmaNomeModal(false);
     setLoadingEnviar(false);
   }
 
@@ -396,7 +421,7 @@ export function OrcamentoPage() {
       <div className="max-w-3xl mx-auto bg-card rounded-xl shadow-lg p-4 sm:p-8 mt-4 sm:mt-10 border border-border">
         <h2 className="text-3xl font-extrabold mb-8 text-foreground tracking-tight text-center">Novo Orçamento</h2>
         {produtos.map((p, idx) => (
-          <div key={p.materialSelecionado ? p.materialSelecionado + '-' + idx : idx} className="mb-2 border-b pb-2 last:border-b-0 last:pb-0">
+          <div key={`produto-${idx}-${p.materialSelecionado || 'empty'}`} className="mb-2 border-b pb-2 last:border-b-0 last:pb-0">
             <div
               className="grid grid-cols-1 md:grid-cols-[minmax(180px,1.7fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(80px,0.8fr)_minmax(110px,1fr)_minmax(60px,0.5fr)] gap-x-2 gap-y-2 items-end"
             >
@@ -445,7 +470,7 @@ export function OrcamentoPage() {
                       }).map(mat => (
                         <button
                           type="button"
-                          key={mat.nome}
+                          key={`material-${idx}-${mat.nome}`}
                           className={`w-full text-left px-3 py-2 hover:bg-accent flex items-center gap-2 text-foreground ${p.materialSelecionado === mat.nome ? 'bg-accent font-semibold' : ''}`}
                           onClick={() => {
                             setProdutos(produtos => produtos.map((prod, i) => i === idx ? {
@@ -758,7 +783,7 @@ export function OrcamentoPage() {
                   );
                 })
                 .map(contato => (
-                  <label key={contato.numero} className="flex items-center gap-2 cursor-pointer text-foreground">
+                  <label key={`contato-${contato.numero}-${contato.nome || 'sem-nome'}`} className="flex items-center gap-2 cursor-pointer text-foreground">
                     <input
                       type="checkbox"
                       checked={contatosSelecionados.includes(contato.numero)}
@@ -782,7 +807,7 @@ export function OrcamentoPage() {
                 <button
                   className="px-4 py-2 rounded bg-primary text-primary-foreground font-semibold hover:bg-primary/90 flex items-center gap-2"
                   disabled={contatosSelecionados.length === 0 || loadingEnviar}
-                  onClick={enviarMensagemWhatsApp}
+                  onClick={confirmarEnvioMensagem}
                 >
                   {loadingEnviar && (
                     <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
@@ -808,6 +833,103 @@ export function OrcamentoPage() {
                   {loadingEnviar ? "Enviando..." : "Enviar PDF"}
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal para confirmar nome antes do envio */}
+      {showConfirmaNomeModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-card rounded shadow-lg p-8 max-w-md w-full relative border border-border">
+            <h3 className="text-xl font-bold mb-4 text-foreground">Confirmar Nome do Cliente</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Confirme ou edite o nome do cliente que aparecerá no orçamento:
+            </p>
+            <input
+              type="text"
+              placeholder="Digite o nome do cliente..."
+              value={nomeTemporario}
+              onChange={(e) => setNomeTemporario(e.target.value)}
+              className="border rounded px-3 py-2 w-full mb-6 bg-card text-foreground border-border focus:ring-2 focus:ring-ring focus:border-ring"
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                className="px-4 py-2 rounded bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+                onClick={() => {
+                  setShowConfirmaNomeModal(false);
+                  setNomeTemporario("");
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-primary text-primary-foreground font-semibold hover:bg-primary/90 flex items-center gap-2"
+                onClick={() => {
+                  if (nomeTemporario.trim()) {
+                    setShowConfirmaNomeModal(false);
+                    enviarMensagemWhatsApp();
+                  } else {
+                    toast.error("Por favor, informe o nome do cliente");
+                  }
+                }}
+                disabled={!nomeTemporario.trim() || loadingEnviar}
+              >
+                {loadingEnviar && (
+                  <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                )}
+                {loadingEnviar ? "Enviando..." : "Enviar Mensagem"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Modal para capturar nome do cliente */}
+      {showNomeModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="bg-card rounded shadow-lg p-8 max-w-md w-full relative border border-border">
+            <h3 className="text-xl font-bold mb-4 text-foreground">Nome do Cliente</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              O contato selecionado não possui nome cadastrado. Por favor, informe o nome do cliente para o orçamento:
+            </p>
+            <input
+              type="text"
+              placeholder="Digite o nome do cliente..."
+              value={nomeTemporario}
+              onChange={(e) => setNomeTemporario(e.target.value)}
+              className="border rounded px-3 py-2 w-full mb-6 bg-card text-foreground border-border focus:ring-2 focus:ring-ring focus:border-ring"
+              autoFocus
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                className="px-4 py-2 rounded bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+                onClick={() => {
+                  setShowNomeModal(false);
+                  setNomeTemporario("");
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
+                onClick={() => {
+                  if (nomeTemporario.trim()) {
+                    setShowNomeModal(false);
+                    // Usar o nome temporário e continuar com o envio
+                    enviarMensagemWhatsApp();
+                  } else {
+                    toast.error("Por favor, informe o nome do cliente");
+                  }
+                }}
+                disabled={!nomeTemporario.trim()}
+              >
+                Continuar Envio
+              </button>
             </div>
           </div>
         </div>

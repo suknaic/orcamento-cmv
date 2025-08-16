@@ -32,12 +32,15 @@ export default {
     let orcamentoId = null;
     if (cliente_nome && produtos && valor_total) {
       try {
+        // Garantir que o nome do cliente não seja genérico
+        const nomeReal = cliente_nome === 'Cliente' ? 'Cliente Desconhecido' : cliente_nome;
+        
         const result = db.prepare(`
           INSERT INTO orcamentos_enviados 
           (cliente_nome, cliente_numero, produtos, valor_total, tipo_envio, status)
           VALUES (?, ?, ?, ?, ?, ?)
         `).run(
-          cliente_nome,
+          nomeReal,
           numeros[0] || null, // Primeiro número como principal
           JSON.stringify(produtos),
           valor_total,
