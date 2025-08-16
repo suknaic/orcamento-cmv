@@ -1,30 +1,29 @@
 import { useEffect, useState, useRef } from "react";
 import { AnimatedSubscribeButton } from "@/components/magicui/animated-subscribe-button";
 import { PropostaComercial } from "@/components/proposta";
-import html2canvas from 'html2canvas';
-import jsPDF from 'jspdf';
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 import { ToastContainer, toast } from "react-toastify";
 
-  // (Removido daqui, será definido dentro do componente OrcamentoPage)
-
+// (Removido daqui, será definido dentro do componente OrcamentoPage)
 
 // Tipos de materiais e lógica de cálculo
 const tiposMateriais = {
-  "m2": { campos: ["largura", "altura", "quantidade"] },
-  "unidade": { campos: ["quantidade"] },
-  "milheiro": { campos: ["quantidade"] },
-  "kit": { campos: ["quantidade"] },
+  m2: { campos: ["largura", "altura", "quantidade"] },
+  unidade: { campos: ["quantidade"] },
+  milheiro: { campos: ["quantidade"] },
+  kit: { campos: ["quantidade"] },
 };
 
 function calcularOrcamento(material, tipo, preco, largura, altura, quantidade) {
   if (!material || !tipo) return 0;
-  
+
   // Normalizar inputs numéricos
-  const precoNum = parseFloat(String(preco).replace(',', '.')) || 0;
-  const larguraNum = parseFloat(String(largura).replace(',', '.')) || 0;
-  const alturaNum = parseFloat(String(altura).replace(',', '.')) || 0;
+  const precoNum = parseFloat(String(preco).replace(",", ".")) || 0;
+  const larguraNum = parseFloat(String(largura).replace(",", ".")) || 0;
+  const alturaNum = parseFloat(String(altura).replace(",", ".")) || 0;
   const quantidadeNum = Math.max(1, parseInt(String(quantidade)) || 1);
-  
+
   if (tipo === "m2") {
     const area = larguraNum * alturaNum;
     return area * precoNum * quantidadeNum;
@@ -41,13 +40,12 @@ function calcularOrcamento(material, tipo, preco, largura, altura, quantidade) {
   return 0;
 }
 
-
 export function OrcamentoPage() {
   const materialRefs = useRef<(HTMLInputElement | null)[]>([]);
   const [loadingEnviar, setLoadingEnviar] = useState(false);
 
-    // Estado para modal de informações extras
-  const [showInfoModal, setShowInfoModal] = useState<false | 'pdf'>(false);
+  // Estado para modal de informações extras
+  const [showInfoModal, setShowInfoModal] = useState<false | "pdf">(false);
   const [showNomeModal, setShowNomeModal] = useState(false);
   const [showConfirmaNomeModal, setShowConfirmaNomeModal] = useState(false);
   const [nomeTemporario, setNomeTemporario] = useState("");
@@ -55,18 +53,15 @@ export function OrcamentoPage() {
     cliente: "",
     validade: "7 dias",
     desconto: "",
-    pagamento: "À vista"
+    pagamento: "À vista",
   });
   const propostaRef = useRef(null);
-
-
 
   const [contatos, setContatos] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [contatosSelecionados, setContatosSelecionados] = useState([]);
   const [buscaContato, setBuscaContato] = useState("");
-  const [tipoEnvio, setTipoEnvio] = useState<'mensagem' | 'pdf'>('mensagem'); // Controla o tipo de envio
-
+  const [tipoEnvio, setTipoEnvio] = useState<"mensagem" | "pdf">("mensagem"); // Controla o tipo de envio
 
   const [materiais, setMateriais] = useState([]);
   type ProdutoOrcamento = {
@@ -81,7 +76,15 @@ export function OrcamentoPage() {
     _showDropdown?: boolean;
   };
   const [produtos, setProdutos] = useState<ProdutoOrcamento[]>([
-    { materialSelecionado: null, tipo: '', preco: 0, largura: '', altura: '', quantidade: 1, valor: 0 }
+    {
+      materialSelecionado: null,
+      tipo: "",
+      preco: 0,
+      largura: "",
+      altura: "",
+      quantidade: 1,
+      valor: 0,
+    },
   ]);
   const [mensagem, setMensagem] = useState("");
 
@@ -89,12 +92,12 @@ export function OrcamentoPage() {
   // Calcula desconto (pode ser % ou valor fixo)
   function calcularDesconto(valorTotal: number, desconto: string) {
     if (!desconto) return 0;
-    
+
     // Remove espaços e normaliza vírgulas para pontos
-    const descontoLimpo = desconto.trim().replace(',', '.');
-    
-    if (descontoLimpo.includes('%')) {
-      const perc = parseFloat(descontoLimpo.replace('%', ''));
+    const descontoLimpo = desconto.trim().replace(",", ".");
+
+    if (descontoLimpo.includes("%")) {
+      const perc = parseFloat(descontoLimpo.replace("%", ""));
       if (!isNaN(perc) && isFinite(perc)) {
         return valorTotal * (perc / 100);
       }
@@ -111,60 +114,91 @@ export function OrcamentoPage() {
     // Valor unitário real: total dividido pela quantidade (evita divisão por zero)
     const valorUnitario = p.quantidade > 0 ? p.valor / p.quantidade : 0;
     return {
-      descricao: p.materialSelecionado ? p.materialSelecionado +
-        (p.tipo === 'm2' ? ` (${p.largura}x${p.altura}m${p.quantidade > 1 ? `, ${p.quantidade}x` : ''})` :
-          p.tipo === 'milheiro' ? (p.quantidade === 1 ? ' (1 milheiro)' : ` (${p.quantidade} milheiros)`) :
-          p.tipo === 'unidade' ? (p.quantidade === 1 ? ' (1 unidade)' : ` (${p.quantidade} unidades)`) :
-          p.tipo === 'kit' ? (p.quantidade === 1 ? ' (1 kit)' : ` (${p.quantidade} kits)`) :
-          '') : '',
+      descricao: p.materialSelecionado
+        ? p.materialSelecionado +
+          (p.tipo === "m2"
+            ? ` (${p.largura}x${p.altura}m${
+                p.quantidade > 1 ? `, ${p.quantidade}x` : ""
+              })`
+            : p.tipo === "milheiro"
+            ? p.quantidade === 1
+              ? " (1 milheiro)"
+              : ` (${p.quantidade} milheiros)`
+            : p.tipo === "unidade"
+            ? p.quantidade === 1
+              ? " (1 unidade)"
+              : ` (${p.quantidade} unidades)`
+            : p.tipo === "kit"
+            ? p.quantidade === 1
+              ? " (1 kit)"
+              : ` (${p.quantidade} kits)`
+            : "")
+        : "",
       quantidade: p.quantidade,
       valorUnitario,
-      total: p.valor
+      total: p.valor,
     };
   });
   const valorBruto = produtos.reduce((acc, p) => acc + p.valor, 0);
   const descontoAplicado = calcularDesconto(valorBruto, info.desconto);
   const valorTotal = Math.max(0, valorBruto - descontoAplicado);
 
-   // Carrega materiais do backend ao montar
+  // Carrega materiais do backend ao montar
   useEffect(() => {
-    fetch('/api/config')
-      .then(res => res.json())
-      .then(data => {
+    fetch("/api/config")
+      .then((res) => res.json())
+      .then((data) => {
         setMateriais(data.materiais || []);
       })
       .catch(() => {
-        toast.error('Erro ao carregar materiais do banco!');
+        toast.error("Erro ao carregar materiais do banco!");
       });
   }, []);
 
   // Atualiza tipo e preco ao selecionar material de cada produto
   useEffect(() => {
-    setProdutos(produtos => produtos.map((p, idx) => {
-      if (!p.materialSelecionado) return { ...p };
-      const mat = materiais.find(m => m.nome === p.materialSelecionado);
-      if (!mat) return { ...p };
-      // Se o material já tem tipo definido no banco, respeite-o
-      let tipoDetectado = mat.tipo || 'unidade';
-      // Se não houver tipo no banco, tente inferir pelo nome
+    setProdutos((produtos) =>
+      produtos.map((p, idx) => {
+        if (!p.materialSelecionado) return { ...p };
+        const mat = materiais.find((m) => m.nome === p.materialSelecionado);
+        if (!mat) return { ...p };
+        // Se o material já tem tipo definido no banco, respeite-o
+        let tipoDetectado = mat.tipo || "unidade";
+        // Se não houver tipo no banco, tente inferir pelo nome
 
-      return { ...p, tipo: tipoDetectado, preco: mat.preco };
-    }));
-  }, [materiais, produtos.map(p => p.materialSelecionado).join()]);
+        return { ...p, tipo: tipoDetectado, preco: mat.preco };
+      })
+    );
+  }, [materiais, produtos.map((p) => p.materialSelecionado).join()]);
 
   useEffect(() => {
-    setProdutos(produtos => produtos.map(p => ({
-      ...p,
-      valor: calcularOrcamento(
-        p.materialSelecionado,
-        p.tipo,
-        p.preco,
-        p.largura,
-        p.altura,
-        p.quantidade
+    setProdutos((produtos) =>
+      produtos.map((p) => ({
+        ...p,
+        valor: calcularOrcamento(
+          p.materialSelecionado,
+          p.tipo,
+          p.preco,
+          p.largura,
+          p.altura,
+          p.quantidade
+        ),
+      }))
+    );
+  }, [
+    produtos
+      .map((p) =>
+        [
+          p.materialSelecionado,
+          p.tipo,
+          p.preco,
+          p.largura,
+          p.altura,
+          p.quantidade,
+        ].join()
       )
-    })));
-  }, [produtos.map(p => [p.materialSelecionado, p.tipo, p.preco, p.largura, p.altura, p.quantidade].join()).join()]);
+      .join(),
+  ]);
 
   // ...código anterior...
 
@@ -172,7 +206,10 @@ export function OrcamentoPage() {
     // Gera mensagem geral do orçamento com novo formato
     const agora = new Date();
     const dataStr = agora.toLocaleDateString("pt-BR");
-    const horaStr = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const horaStr = agora.toLocaleTimeString("pt-BR", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
 
     function addBusinessDays(date, days) {
       let result = new Date(date);
@@ -191,51 +228,74 @@ export function OrcamentoPage() {
     const previsaoStr = previsaoEntrega.toLocaleDateString("pt-BR");
 
     // NOVO FORMATO DE PRODUTO
-    const msg = produtos.map((p, idx) => {
-      if (!p.materialSelecionado) return '';
-      const quantidade = p.quantidade || 1;
-      const largura = p.largura ? Number(p.largura).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : '';
-      const altura = p.altura ? Number(p.altura).toLocaleString("pt-BR", { minimumFractionDigits: 2 }) : '';
-      const tam = (largura && altura) ? `tam. ${largura}x${altura}m` : '';
-      const valorUnit = p.quantidade > 0 ? p.valor / p.quantidade : 0;
-      return [
-        `${quantidade} un. ${p.materialSelecionado}`,
-        tam,
-        `V. Unit.:............................R$ ${valorUnit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-        `TOTAL:.............................*R$${p.valor.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}*`,
-        ''
-      ].filter(Boolean).join('\n');
-    }).filter(Boolean).join('\n\n');
+    const msg = produtos
+      .map((p, idx) => {
+        if (!p.materialSelecionado) return "";
+        const quantidade = p.quantidade || 1;
+        const largura = p.largura
+          ? Number(p.largura).toLocaleString("pt-BR", {
+              minimumFractionDigits: 2,
+            })
+          : "";
+        const altura = p.altura
+          ? Number(p.altura).toLocaleString("pt-BR", {
+              minimumFractionDigits: 2,
+            })
+          : "";
+        const tam = largura && altura ? `tam. ${largura}x${altura}m` : "";
+        const valorUnit = p.quantidade > 0 ? p.valor / p.quantidade : 0;
+        return [
+          `${quantidade} un. ${p.materialSelecionado}`,
+          tam,
+          `V. Unit.:............................R$ ${valorUnit.toLocaleString(
+            "pt-BR",
+            { minimumFractionDigits: 2 }
+          )}`,
+          `TOTAL:.............................*R$${p.valor.toLocaleString(
+            "pt-BR",
+            { minimumFractionDigits: 2 }
+          )}*`,
+          "",
+        ]
+          .filter(Boolean)
+          .join("\n");
+      })
+      .filter(Boolean)
+      .join("\n\n");
 
     setMensagem(
-      `*ORÇAMENTO*:\n${msg}\n\nValor total: *R$${valorTotal.toLocaleString("pt-BR", {minimumFractionDigits:2})}*\nValidade: 7 dias\nPrazo de produção: ${prazoProducao} dias úteis\nData: ${dataStr}\nHora: ${horaStr}\nPrevisão para entrega: ${previsaoStr}`
+      `*ORÇAMENTO*:\n${msg}\n\nValor total: *R$${valorTotal.toLocaleString(
+        "pt-BR",
+        { minimumFractionDigits: 2 }
+      )}*\nValidade: 7 dias\nPrazo de produção: ${prazoProducao} dias úteis\nData: ${dataStr}\nHora: ${horaStr}\nPrevisão para entrega: ${previsaoStr}`
     );
   }, [produtos, valorTotal]);
 
-// ...código posterior...
+  // ...código posterior...
 
   // Rodapé fixo para mensagem
   const rodape = [
-    'CNPJ: 52.548.924/0001-20',
-    'JULIO DESIGNER',
-    'travessa da vitória, Nº 165',
-    'bairro: Montanhês',
-    'Cep: 69.921-554',
-    'WhatsApp: (68) 99976-0124',
+    "CNPJ: 52.548.924/0001-20",
+    "JULIO DESIGNER",
+    "travessa da vitória, Nº 165",
+    "bairro: Montanhês",
+    "Cep: 69.921-554",
+    "WhatsApp: (68) 99976-0124",
   ];
 
   const dadosBancarios = [
-    'PIX 6899976-0124',
-    'BANCO DO BRASIL',
-    'AG. 2358-2',
-    'CC. 108822-X'
+    "PIX 6899976-0124",
+    "BANCO DO BRASIL",
+    "AG. 2358-2",
+    "CC. 108822-X",
   ];
-
 
   // Estado para feedback do botão copiar
   const [copiado, setCopiado] = useState(false);
   function copiar() {
-    const mensagemComRodape = `${mensagem}\n\n${rodape.join("\n")}\n\n${dadosBancarios.join("\n")}`;
+    const mensagemComRodape = `${mensagem}\n\n${rodape.join(
+      "\n"
+    )}\n\n${dadosBancarios.join("\n")}`;
     navigator.clipboard.writeText(mensagemComRodape);
     setCopiado(true);
     setTimeout(() => setCopiado(false), 1500);
@@ -247,7 +307,7 @@ export function OrcamentoPage() {
       const res = await fetch("/api/contatos");
       const lista = await res.json();
       setContatos(lista);
-      setTipoEnvio('mensagem'); // Define como envio de mensagem apenas
+      setTipoEnvio("mensagem"); // Define como envio de mensagem apenas
       setShowModal(true);
     } catch (e) {
       toast.error("Erro ao buscar contatos: " + e);
@@ -257,11 +317,13 @@ export function OrcamentoPage() {
   // Função para confirmar nome antes do envio
   function confirmarEnvioMensagem() {
     if (contatosSelecionados.length === 0) return;
-    
+
     // Obter nome do primeiro contato selecionado
-    const primeiroContato = contatos.find(c => c.numero === contatosSelecionados[0]);
-    const nomeAtual = info.cliente || primeiroContato?.nome || 'Cliente';
-    
+    const primeiroContato = contatos.find(
+      (c) => c.numero === contatosSelecionados[0]
+    );
+    const nomeAtual = info.cliente || primeiroContato?.nome || "Cliente";
+
     // Preencher o modal com o nome atual
     setNomeTemporario(nomeAtual);
     setShowConfirmaNomeModal(true);
@@ -270,25 +332,25 @@ export function OrcamentoPage() {
   // Substituir handleEnviarParaSelecionados para gerar e enviar PDF
   async function enviarMensagemWhatsApp() {
     if (contatosSelecionados.length === 0) return;
-    
+
     setLoadingEnviar(true);
     try {
       // Usar o nome confirmado no modal
-      const nomeCliente = nomeTemporario || 'Cliente';
-      
+      const nomeCliente = nomeTemporario || "Cliente";
+
       // Adicionar cabeçalho com nome do cliente na mensagem
       const mensagemComCliente = `*ORÇAMENTO PARA: ${nomeCliente.toUpperCase()}*\n\n${mensagem}`;
-      
-      const resp = await fetch('/api/enviarMensagem', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+
+      const resp = await fetch("/api/enviarMensagem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           numeros: contatosSelecionados,
           mensagem: mensagemComCliente,
           cliente_nome: nomeCliente,
           produtos: orcamentoData,
-          valor_total: valorTotal
-        })
+          valor_total: valorTotal,
+        }),
       });
       let data = null;
       try {
@@ -302,7 +364,9 @@ export function OrcamentoPage() {
       if (data && data.ok) {
         toast.success("Mensagem enviada para os contatos selecionados!");
       } else {
-        toast.error("Falha ao enviar mensagem: " + (data?.error || "Erro desconhecido"));
+        toast.error(
+          "Falha ao enviar mensagem: " + (data?.error || "Erro desconhecido")
+        );
       }
     } catch (e) {
       toast.error("Erro ao enviar: " + e);
@@ -314,66 +378,71 @@ export function OrcamentoPage() {
 
   async function enviarPDFWhatsApp() {
     if (contatosSelecionados.length === 0) return;
-    if (!propostaRef.current) return toast.error('Erro ao gerar PDF tente novamente');
+    if (!propostaRef.current)
+      return toast.error("Erro ao gerar PDF tente novamente");
     setLoadingEnviar(true);
     try {
-      const jsPDF = (await import('jspdf')).jsPDF;
-      const html2canvas = (await import('html2canvas')).default;
-      
+      const jsPDF = (await import("jspdf")).jsPDF;
+      const html2canvas = (await import("html2canvas")).default;
+
       const node = propostaRef.current;
       const prevBorder = node.style.border;
       const prevBoxShadow = node.style.boxShadow;
-      node.style.border = 'none';
-      node.style.boxShadow = 'none';
-      node.style.outline = 'none';
-      
+      node.style.border = "none";
+      node.style.boxShadow = "none";
+      node.style.outline = "none";
+
       // Configurações otimizadas para performance
       const canvas = await html2canvas(node, {
-        backgroundColor: '#fff',
+        backgroundColor: "#fff",
         scale: 1.5, // Reduzido para melhor performance
         useCORS: true,
         logging: false,
         width: node.scrollWidth,
         height: node.scrollHeight,
       });
-      
+
       node.style.border = prevBorder;
       node.style.boxShadow = prevBoxShadow;
-      
+
       // Converter com compressão JPEG
-      const imgData = canvas.toDataURL('image/jpeg', 0.8);
-      
+      const imgData = canvas.toDataURL("image/jpeg", 0.8);
+
       // Criar PDF otimizado
-      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdf = new jsPDF("p", "mm", "a4");
       const imgWidth = 210;
       const pageHeight = 297;
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
       let heightLeft = imgHeight;
       let position = 0;
 
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
 
       while (heightLeft >= 0) {
         position = heightLeft - imgHeight;
         pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
         heightLeft -= pageHeight;
       }
-      
-      const pdfBlob = pdf.output('blob');
+
+      const pdfBlob = pdf.output("blob");
       const formData = new FormData();
-      formData.append('pdf', pdfBlob, `Orcamento-${info.cliente || 'Cliente'}.pdf`);
-      formData.append('numeros', JSON.stringify(contatosSelecionados));
-      formData.append('cliente_nome', info.cliente || 'Cliente');
-      formData.append('produtos', JSON.stringify(orcamentoData));
-      formData.append('valor_total', valorTotal.toString());
-      
-      const resp = await fetch('/api/enviarPDF', {
-        method: 'POST',
-        body: formData
+      formData.append(
+        "pdf",
+        pdfBlob,
+        `Orcamento-${info.cliente || "Cliente"}.pdf`
+      );
+      formData.append("numeros", JSON.stringify(contatosSelecionados));
+      formData.append("cliente_nome", info.cliente || "Cliente");
+      formData.append("produtos", JSON.stringify(orcamentoData));
+      formData.append("valor_total", valorTotal.toString());
+
+      const resp = await fetch("/api/enviarPDF", {
+        method: "POST",
+        body: formData,
       });
-      
+
       let data = null;
       try {
         data = await resp.json();
@@ -382,11 +451,13 @@ export function OrcamentoPage() {
         setShowModal(false);
         return;
       }
-      
+
       if (data && data.ok) {
         toast.success("PDF enviado para os contatos selecionados!");
       } else {
-        toast.error("Falha ao enviar PDF: " + (data?.error || "Erro desconhecido"));
+        toast.error(
+          "Falha ao enviar PDF: " + (data?.error || "Erro desconhecido")
+        );
       }
     } catch (e) {
       toast.error("Erro ao enviar PDF: " + e);
@@ -395,403 +466,1015 @@ export function OrcamentoPage() {
     setLoadingEnviar(false);
   }
   function handleCheckContato(numero) {
-    setContatosSelecionados(prev =>
+    setContatosSelecionados((prev) =>
       prev.includes(numero)
-        ? prev.filter(n => n !== numero)
+        ? prev.filter((n) => n !== numero)
         : [...prev, numero]
     );
   }
 
-
-
   return (
     <>
-      <ToastContainer 
-        position="top-center" 
-        autoClose={3500} 
-        hideProgressBar={false} 
-        newestOnTop 
-        closeOnClick 
-        pauseOnFocusLoss 
-        draggable 
+      <ToastContainer
+        position="top-center"
+        autoClose={3500}
+        hideProgressBar={false}
+        newestOnTop
+        closeOnClick
+        pauseOnFocusLoss
+        draggable
         pauseOnHover
         theme="auto"
         className="relative"
       />
-      <div className="max-w-3xl mx-auto bg-card rounded-xl shadow-lg p-4 sm:p-8 mt-4 sm:mt-10 border border-border">
-        <h2 className="text-3xl font-extrabold mb-8 text-foreground tracking-tight text-center">Novo Orçamento</h2>
-        {produtos.map((p, idx) => (
-          <div key={`produto-${idx}-${p.materialSelecionado || 'empty'}`} className="mb-2 border-b pb-2 last:border-b-0 last:pb-0">
-            <div
-              className="grid grid-cols-1 md:grid-cols-[minmax(180px,1.7fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(80px,0.8fr)_minmax(110px,1fr)_minmax(60px,0.5fr)] gap-x-2 gap-y-2 items-end"
-            >
-              <div className="flex flex-col">
-                <label className="block mb-0.5 font-semibold text-md text-foreground">Produtos  </label>
-                <div className="relative min-w-[10px]">
-                  <input
-                    ref={el => { materialRefs.current[idx] = el; }}
-                    type="text"
-                    className="border border-border rounded px-2 py-1 w-full min-w-[160px] max-w-[200px] focus:ring-2 focus:ring-ring focus:border-ring transition outline-none shadow-sm text-sm bg-card text-foreground"
-                    placeholder="Buscar Produto..."
-                    value={p._buscaMaterial || ''}
-                    onChange={e => {
-                      const busca = e.target.value;
-                      setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, _buscaMaterial: busca } : prod));
-                    }}
-                    onFocus={e => {
-                      if (!p._showDropdown) {
-                        setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, _showDropdown: true } : { ...prod, _showDropdown: false }));
-                      }
-                    }}
-                    onBlur={e => {
-                      setTimeout(() => {
-                        setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, _showDropdown: false } : prod));
-                      }, 150);
-                    }}
+      <div className="max-w-6xl mx-auto space-y-6 mt-4 sm:mt-10">
+        {/* Header */}
+        <div className="bg-card rounded-xl shadow-lg p-6 border border-border">
+          <div className="text-center">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+                <svg
+                  className="w-7 h-7 text-primary"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                   />
-                  <button
-                    type="button"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary"
-                    tabIndex={-1}
-                    onClick={() => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, _showDropdown: !prod._showDropdown } : { ...prod, _showDropdown: false }))}
+                </svg>
+              </div>
+            </div>
+            <h1 className="text-3xl font-extrabold text-foreground tracking-tight mb-2">
+              Criar Novo Orçamento
+            </h1>
+            <p className="text-muted-foreground max-w-2xl mx-auto">
+              Monte seu orçamento adicionando produtos, configure valores e
+              envie via WhatsApp ou PDF profissional
+            </p>
+          </div>
+        </div>
+
+        {/* Seção de Produtos */}
+        <div className="bg-card rounded-xl shadow-lg border border-border overflow-hidden">
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-border">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                  <svg
+                    className="w-6 h-6 text-blue-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
-                  </button>
-                  {p._showDropdown && (
-                    <div className="absolute z-20 left-0 right-0 bg-card border border-t-0 rounded-b shadow max-h-56 overflow-y-auto animate-fade-in">
-                      {materiais.filter(mat => {
-                        const busca = (p._buscaMaterial || '').toLowerCase();
-                        return !busca || mat.nome.toLowerCase().includes(busca);
-                      }).length === 0 ? (
-                        <div className="px-3 py-2 text-muted-foreground text-sm">Nenhum Produto encontrado</div>
-                      ) : materiais.filter(mat => {
-                        const busca = (p._buscaMaterial || '').toLowerCase();
-                        return !busca || mat.nome.toLowerCase().includes(busca);
-                      }).map(mat => (
-                        <button
-                          type="button"
-                          key={`material-${idx}-${mat.nome}`}
-                          className={`w-full text-left px-3 py-2 hover:bg-accent flex items-center gap-2 text-foreground ${p.materialSelecionado === mat.nome ? 'bg-accent font-semibold' : ''}`}
-                          onClick={() => {
-                            setProdutos(produtos => produtos.map((prod, i) => i === idx ? {
-                              ...prod,
-                              materialSelecionado: mat.nome,
-                              preco: mat.preco,
-                              tipo: prod.tipo, // será atualizado pelo useEffect
-                              largura: '',
-                              altura: '',
-                              quantidade: 1,
-                              _buscaMaterial: mat.nome,
-                              _showDropdown: false
-                            } : prod));
-                          }}
-                        >
-                          <span className="truncate max-w-[240px]" title={mat.nome}>{mat.nome}</span>
-                          {mat.preco ? <span className="ml-auto text-xs text-green-600 font-bold">R$ {Number(mat.preco).toLocaleString("pt-BR", {minimumFractionDigits:2})}</span> : null}
-                        </button>
-                      ))}
-                    </div>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800">
+                    1. Selecionar Produtos
+                  </h2>
+                  <p className="text-sm text-gray-600">
+                    Adicione os produtos e configure suas especificações
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="bg-white rounded-lg px-3 py-2 shadow-sm border">
+                  <p className="text-xs text-gray-500">Total de itens</p>
+                  <p className="text-2xl font-bold text-blue-600">
+                    {produtos.length}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {produtos.map((p, idx) => (
+              <div
+                key={`produto-${idx}-${p.materialSelecionado || "empty"}`}
+                className="bg-gray-50 border border-gray-200 rounded-lg p-5 hover:border-primary/30 transition-all duration-200 hover:shadow-md"
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-bold text-primary">
+                    {idx + 1}
+                  </div>
+                  <h3 className="font-semibold text-gray-800">
+                    Produto {idx + 1}
+                  </h3>
+                  {produtos.length > 1 && (
+                    <button
+                      type="button"
+                      className="ml-auto text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg p-2 transition-colors"
+                      title="Remover produto"
+                      onClick={() =>
+                        setProdutos((produtos) =>
+                          produtos.filter((_, i) => i !== idx)
+                        )
+                      }
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
                   )}
                 </div>
-               
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                  {/* Campo de Produto */}
+                  <div className="lg:col-span-2">
+                    <label className="flex items-center gap-2 mb-2 font-medium text-gray-700">
+                      <svg
+                        className="w-4 h-4 text-primary"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"
+                        />
+                      </svg>
+                      Nome do Produto *
+                    </label>
+                    <div className="relative">
+                      <input
+                        ref={(el) => {
+                          materialRefs.current[idx] = el;
+                        }}
+                        type="text"
+                        className="border border-gray-300 rounded-lg px-4 py-3 w-full focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors outline-none bg-white text-gray-800 placeholder:text-gray-400"
+                        placeholder="Digite ou busque um produto..."
+                        value={p._buscaMaterial || ""}
+                        onChange={(e) => {
+                          const busca = e.target.value;
+                          setProdutos((produtos) =>
+                            produtos.map((prod, i) =>
+                              i === idx
+                                ? { ...prod, _buscaMaterial: busca }
+                                : prod
+                            )
+                          );
+                        }}
+                        onFocus={(e) => {
+                          if (!p._showDropdown) {
+                            setProdutos((produtos) =>
+                              produtos.map((prod, i) =>
+                                i === idx
+                                  ? { ...prod, _showDropdown: true }
+                                  : { ...prod, _showDropdown: false }
+                              )
+                            );
+                          }
+                        }}
+                        onBlur={(e) => {
+                          setTimeout(() => {
+                            setProdutos((produtos) =>
+                              produtos.map((prod, i) =>
+                                i === idx
+                                  ? { ...prod, _showDropdown: false }
+                                  : prod
+                              )
+                            );
+                          }, 150);
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors"
+                        tabIndex={-1}
+                        onClick={() =>
+                          setProdutos((produtos) =>
+                            produtos.map((prod, i) =>
+                              i === idx
+                                ? {
+                                    ...prod,
+                                    _showDropdown: !prod._showDropdown,
+                                  }
+                                : { ...prod, _showDropdown: false }
+                            )
+                          )
+                        }
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M19 9l-7 7-7-7"
+                          />
+                        </svg>
+                      </button>
+                      {p._showDropdown && (
+                        <div className="absolute z-30 left-0 right-0 bg-white border border-gray-200 rounded-b-lg shadow-xl max-h-60 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
+                          {materiais.filter((mat) => {
+                            const busca = (
+                              p._buscaMaterial || ""
+                            ).toLowerCase();
+                            return (
+                              !busca || mat.nome.toLowerCase().includes(busca)
+                            );
+                          }).length === 0 ? (
+                            <div className="px-4 py-6 text-center">
+                              <svg
+                                className="w-12 h-12 mx-auto mb-3 text-gray-300"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                />
+                              </svg>
+                              <p className="text-gray-500 text-sm">
+                                Nenhum produto encontrado
+                              </p>
+                              <p className="text-gray-400 text-xs mt-1">
+                                Tente outro termo de busca
+                              </p>
+                            </div>
+                          ) : (
+                            materiais
+                              .filter((mat) => {
+                                const busca = (
+                                  p._buscaMaterial || ""
+                                ).toLowerCase();
+                                return (
+                                  !busca ||
+                                  mat.nome.toLowerCase().includes(busca)
+                                );
+                              })
+                              .map((mat) => (
+                                <button
+                                  type="button"
+                                  key={`material-${idx}-${mat.nome}`}
+                                  className={`w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors flex items-center gap-3 border-b border-gray-100 last:border-b-0 ${
+                                    p.materialSelecionado === mat.nome
+                                      ? "bg-primary/10 border-primary/20"
+                                      : ""
+                                  }`}
+                                  onClick={() => {
+                                    setProdutos((produtos) =>
+                                      produtos.map((prod, i) =>
+                                        i === idx
+                                          ? {
+                                              ...prod,
+                                              materialSelecionado: mat.nome,
+                                              preco: mat.preco,
+                                              tipo: prod.tipo,
+                                              largura: "",
+                                              altura: "",
+                                              quantidade: 1,
+                                              _buscaMaterial: mat.nome,
+                                              _showDropdown: false,
+                                            }
+                                          : prod
+                                      )
+                                    );
+                                  }}
+                                >
+                                  <div className="flex-1">
+                                    <div
+                                      className="font-medium text-gray-800 truncate"
+                                      title={mat.nome}
+                                    >
+                                      {mat.nome}
+                                    </div>
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      <span className="bg-gray-100 px-2 py-1 rounded-full">
+                                        {mat.tipo || "unidade"}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  {mat.preco && (
+                                    <div className="text-right">
+                                      <div className="text-lg font-bold text-green-600">
+                                        R${" "}
+                                        {Number(mat.preco).toLocaleString(
+                                          "pt-BR",
+                                          { minimumFractionDigits: 2 }
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </button>
+                              ))
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {/* Campos de Dimensões */}
+                  {p.tipo &&
+                    tiposMateriais[p.tipo]?.campos.includes("largura") && (
+                      <div>
+                        <label className="flex items-center gap-2 mb-2 font-medium text-gray-700">
+                          <svg
+                            className="w-4 h-4 text-orange-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 8V6a2 2 0 012-2h2M4 16v2a2 2 0 002 2h2m8-16h2a2 2 0 012 2v2m-4 12h2a2 2 0 002-2v-2"
+                            />
+                          </svg>
+                          Largura (m)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          className="border border-gray-300 rounded-lg px-3 py-3 w-full text-gray-800 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors outline-none"
+                          placeholder="0,00"
+                          value={p.largura}
+                          onChange={(e) =>
+                            setProdutos((produtos) =>
+                              produtos.map((prod, i) =>
+                                i === idx
+                                  ? { ...prod, largura: e.target.value }
+                                  : prod
+                              )
+                            )
+                          }
+                        />
+                      </div>
+                    )}
+
+                  {p.tipo &&
+                    tiposMateriais[p.tipo]?.campos.includes("altura") && (
+                      <div>
+                        <label className="flex items-center gap-2 mb-2 font-medium text-gray-700">
+                          <svg
+                            className="w-4 h-4 text-orange-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M4 8V6a2 2 0 012-2h2M4 16v2a2 2 0 002 2h2m8-16h2a2 2 0 012 2v2m-4 12h2a2 2 0 002-2v-2"
+                            />
+                          </svg>
+                          Altura (m)
+                        </label>
+                        <input
+                          type="number"
+                          min={0}
+                          step={0.01}
+                          className="border border-gray-300 rounded-lg px-3 py-3 w-full text-gray-800 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors outline-none"
+                          placeholder="0,00"
+                          value={p.altura}
+                          onChange={(e) =>
+                            setProdutos((produtos) =>
+                              produtos.map((prod, i) =>
+                                i === idx
+                                  ? { ...prod, altura: e.target.value }
+                                  : prod
+                              )
+                            )
+                          }
+                        />
+                      </div>
+                    )}
+
+                  {p.tipo &&
+                    tiposMateriais[p.tipo]?.campos.includes("quantidade") && (
+                      <div>
+                        <label className="flex items-center gap-2 mb-2 font-medium text-gray-700">
+                          <svg
+                            className="w-4 h-4 text-purple-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"
+                            />
+                          </svg>
+                          Quantidade
+                        </label>
+                        <input
+                          type="number"
+                          min={1}
+                          step={1}
+                          className="border border-gray-300 rounded-lg px-3 py-3 w-full text-gray-800 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors outline-none"
+                          placeholder="1"
+                          value={p.quantidade}
+                          onChange={(e) =>
+                            setProdutos((produtos) =>
+                              produtos.map((prod, i) =>
+                                i === idx
+                                  ? {
+                                      ...prod,
+                                      quantidade: Number(e.target.value),
+                                    }
+                                  : prod
+                              )
+                            )
+                          }
+                        />
+                      </div>
+                    )}
+
+                  {/* Subtotal */}
+                  <div>
+                    <label className="flex items-center gap-2 mb-2 font-medium text-gray-700">
+                      <svg
+                        className="w-4 h-4 text-green-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"
+                        />
+                      </svg>
+                      Subtotal
+                    </label>
+                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg px-4 py-4 text-center">
+                      <div className="text-3xl font-bold text-green-700">
+                        R${" "}
+                        {p.valor.toLocaleString("pt-BR", {
+                          minimumFractionDigits: 2,
+                        })}
+                      </div>
+                      {p.quantidade > 1 && p.valor > 0 && (
+                        <div className="text-sm text-green-600 mt-1">
+                          R${" "}
+                          {(p.valor / p.quantidade).toLocaleString("pt-BR", {
+                            minimumFractionDigits: 2,
+                          })}{" "}
+                          por {p.tipo === "m2" ? "m²" : "unidade"}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-              {p.tipo && tiposMateriais[p.tipo]?.campos.includes("largura") ? (
-                <div className="flex flex-col min-w-0">
-                  <label className="block mb-0.5 text-xs text-muted-foreground">Largura (m)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    className="border rounded px-2 py-1 min-w-[80px] max-w-[120px] text-sm bg-card text-foreground border-border"
-                    value={p.largura}
-                    onChange={e => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, largura: e.target.value } : prod))}
-                  />
-                </div>
-              ) : <div />}
-              {p.tipo && tiposMateriais[p.tipo]?.campos.includes("altura") ? (
-                <div className="flex flex-col min-w-0">
-                  <label className="block mb-0.5 text-xs text-muted-foreground">Altura (m)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    step={0.01}
-                    className="border rounded px-2 py-1 min-w-[80px] max-w-[120px] text-sm bg-card text-foreground border-border"
-                    value={p.altura}
-                    onChange={e => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, altura: e.target.value } : prod))}
-                  />
-                </div>
-              ) : <div />}
-              {p.tipo && tiposMateriais[p.tipo]?.campos.includes("quantidade") ? (
-                <div className="flex flex-col min-w-0">
-                  <label className="block mb-0.5 text-xs text-muted-foreground">Qtd</label>
-                  <input
-                    type="number"
-                    min={1}
-                    step={1}
-                    className="border rounded px-2 py-1 min-w-[60px] max-w-[80px] text-sm bg-card text-foreground border-border"
-                    value={p.quantidade}
-                    onChange={e => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, quantidade: Number(e.target.value) } : prod))}
-                  />
-                </div>
-              ) : <div />}
-              <div className="flex flex-row ml-auto min-w-0 align-middle items-end justify-end h-full">
-                <div className="flex flex-col">
-                    <label className="block mb-0.5 text-xs text-muted-foreground">Subtotal</label>
-                  <span className="text-green-600 font-extrabold text-xl whitespace-nowrap">R${p.valor.toLocaleString("pt-BR", {minimumFractionDigits:2})}</span>
-                </div>
-                {produtos.length > 1 && (
-                  <button
-                    type="button"
-                    className="text-red-600 text-lg px-2 py-1 mt-1 hover:bg-red-100 rounded-full flex items-center justify-center"
-                    title="Remover produto"
-                    onClick={() => setProdutos(produtos => produtos.filter((_, i) => i !== idx))}
+            ))}
+
+            {/* Botão Adicionar Produto */}
+            <button
+              type="button"
+              className="w-full border-2 border-dashed border-primary/30 rounded-xl p-8 hover:border-primary/50 hover:bg-primary/5 transition-all duration-200 group"
+              onClick={() => {
+                setProdutos((produtos) => {
+                  const novos = [
+                    ...produtos,
+                    {
+                      materialSelecionado: null,
+                      tipo: "",
+                      preco: 0,
+                      largura: "",
+                      altura: "",
+                      quantidade: 1,
+                      valor: 0,
+                      _showDropdown: true,
+                    },
+                  ];
+                  setTimeout(() => {
+                    if (materialRefs.current[novos.length - 1]) {
+                      materialRefs.current[novos.length - 1].focus();
+                    }
+                  }, 50);
+                  return novos.map((prod, i) =>
+                    i === novos.length - 1
+                      ? { ...prod, _showDropdown: true }
+                      : { ...prod, _showDropdown: false }
+                  );
+                });
+              }}
+            >
+              <div className="flex flex-col items-center gap-3 text-primary group-hover:text-primary/80">
+                <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                  <svg
+                    className="w-8 h-8"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                )}
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    />
+                  </svg>
+                </div>
+                <div className="text-center">
+                  <div className="text-xl font-bold">
+                    Adicionar Novo Produto
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Clique para incluir mais um item ao orçamento
+                  </p>
+                </div>
+              </div>
+            </button>
+          </div>
+        </div>
+        {/* Seção de Resumo */}
+        <div className="bg-card rounded-xl shadow-lg border border-border overflow-hidden">
+          <div className="bg-gradient-to-r from-emerald-50 to-green-50 px-6 py-4 border-b border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                <svg
+                  className="w-6 h-6 text-emerald-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">
+                  2. Resumo do Orçamento
+                </h2>
+                <p className="text-sm text-gray-600">
+                  Confira os valores e visualize sua proposta
+                </p>
               </div>
             </div>
           </div>
-        ))}
-        <button
-          type="button"
-          className="mb-4 px-4 py-2 rounded bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md w-full sm:w-auto"
-          onClick={() => {
-            setProdutos(produtos => {
-              const novos = [...produtos, { materialSelecionado: null, tipo: '', preco: 0, largura: '', altura: '', quantidade: 1, valor: 0, _showDropdown: true }];
-              setTimeout(() => {
-                if (materialRefs.current[novos.length - 1]) {
-                  materialRefs.current[novos.length - 1].focus();
-                }
-              }, 50);
-              return novos.map((prod, i) => i === novos.length - 1 ? { ...prod, _showDropdown: true } : { ...prod, _showDropdown: false });
-            });
+
+          <div className="p-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Coluna Esquerda - Valores */}
+              <div className="space-y-6">
+               
+                <div className="bg-card rounded-xl shadow-lg border border-border overflow-hidden">
+                  <div className=" px-6 py-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <svg
+                          className="w-6 h-6 text-purple-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <h2 className="text-xl font-bold text-gray-800">
+                          Enviar Orçamento
+                        </h2>
+                        <p className="text-sm text-gray-600">
+                          Escolha a forma de compartilhar sua proposta comercial
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="group flex flex-col h-full">
+                        <div className="text-center mb-4 flex-1 flex flex-col justify-center">
+                          <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-gray-200 transition-colors">
+                            <svg
+                              className="w-8 h-8 text-gray-600"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                              />
+                            </svg>
+                          </div>
+                          <h3 className="font-bold text-gray-800 mb-2">Copiar Texto</h3>
+                          <p className="text-sm text-gray-600">
+                            Copia o orçamento para usar em qualquer lugar
+                          </p>
+                        </div>
+                        <AnimatedSubscribeButton
+                          subscribeStatus={copiado}
+                          onClick={copiar}
+                          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 px-6 py-[38] rounded-xl font-bold transition-all duration-200 hover:scale-105 hover:shadow-lg min-h-[56px]"
+                        >
+                          <span>Copiar Orçamento</span>
+                          <span>✅ Copiado!</span>
+                        </AnimatedSubscribeButton>
+                      </div>
+
+                      <div className="group flex flex-col h-full">
+                        <div className="text-center mb-4 flex-1 flex flex-col justify-center">
+                          <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-green-200 transition-colors">
+                            <svg
+                              className="w-8 h-8 text-green-600"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                              />
+                            </svg>
+                          </div>
+                          <h3 className="font-bold text-gray-800 mb-2">Mensagem WhatsApp</h3>
+                          <p className="text-sm text-gray-600">
+                            Envia mensagem de texto via WhatsApp
+                          </p>
+                        </div>
+                        <button
+                          className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-xl font-bold transition-all duration-200 hover:scale-105 hover:shadow-lg min-h-[56px]"
+                          type="button"
+                          onClick={enviarWhatsApp}
+                        >
+                          Enviar por WhatsApp
+                        </button>
+                      </div>
+
+                      <div className="group flex flex-col h-full">
+                        <div className="text-center mb-4 flex-1 flex flex-col justify-center">
+                          <div className="w-16 h-16 mx-auto bg-red-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-red-200 transition-colors">
+                            <svg
+                              className="w-8 h-8 text-red-600"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                              />
+                            </svg>
+                          </div>
+                          <h3 className="font-bold text-gray-800 mb-2">Proposta <br /> PDF</h3>
+                          <p className="text-sm text-gray-600">
+                            Gera PDF profissional e envia via WhatsApp
+                          </p>
+                        </div>
+                        <button
+                          className="w-full bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-xl font-bold transition-all duration-200 hover:scale-105 hover:shadow-lg min-h-[56px]"
+                          type="button"
+                          onClick={() => {
+                            setTipoEnvio("pdf");
+                            setShowInfoModal("pdf");
+                          }}
+                        >
+                          Gerar e Enviar PDF
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Coluna Direita - Prévia da Mensagem */}
+              <div className="space-y-6">
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
+                  <label className="flex items-center gap-2 text-lg font-bold text-gray-800 mb-4">
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                      />
+                    </svg>
+                    Prévia da Mensagem WhatsApp
+                  </label>
+                  <textarea
+                    className="border border-gray-300 rounded-lg px-4 py-4 w-full text-sm bg-white text-gray-700 resize-none font-mono leading-relaxed"
+                    rows={12}
+                    value={mensagem}
+                    readOnly
+                  />
+                  <p className="text-xs text-gray-500 mt-2">
+                    Esta é a mensagem que será enviada via WhatsApp
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Seção de Ações */}
+
+        {/* Renderização invisível do PropostaComercial para gerar PDF */}
+        <div
+          style={{
+            position: "absolute",
+            left: "-9999px",
+            top: 0,
+            border: "none",
+            boxShadow: "none",
+            outline: "none",
           }}
         >
-          + Adicionar produto
-        </button>
-        <div className="mb-4 mt-4">
-          <span className="font-semibold text-foreground">Valor total: </span>
-          <span className="text-lg text-green-600 font-bold">R${valorTotal.toLocaleString("pt-BR", {minimumFractionDigits:2})}</span>
-        </div>
-        <div className="mb-4">
-          <textarea
-            className="border rounded px-2 py-1 w-full text-sm bg-card text-foreground border-border"
-            rows={4}
-            value={mensagem}
-            readOnly
-          />
-        </div>
-        <div className="flex gap-2">
-          <AnimatedSubscribeButton
-            subscribeStatus={copiado}
-            onClick={copiar}
-            className="bg-secondary text-secondary-foreground px-4 py-2 rounded font-semibold"
+          <div
+            ref={propostaRef}
+            className="rounded-none shadow-none border-none isolate"
           >
-            <span>Copiar orçamento</span>
-            <span>Mensagem copiada!</span>
-          </AnimatedSubscribeButton>
-          <button
-            className="bg-green-600 hover:bg-green-700 text-primary-foreground px-4 py-2 rounded font-semibold"
-            type="button"
-            onClick={enviarWhatsApp}
-          >
-            Enviar para WhatsApp
-          </button>
-          <button
-            className="bg-primary hover:bg-primary/90 text-secondary-foreground px-4 py-2 rounded font-semibold"
-            type="button"
-            onClick={() => {
-              // Buscar contatos e abrir modal para PDF
-              setTipoEnvio('pdf');
-              setShowInfoModal('pdf');
-            }}
-          >
-            Enviar PDF
-          </button>
-        </div>
-        {/* Modal de informações extras */}
-        {showInfoModal === 'pdf' && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-card rounded shadow-lg p-8 max-w-md w-full relative border border-border">
-              <h3 className="text-xl font-bold mb-4 text-foreground">Informações extras</h3>
-              <div className="flex flex-col gap-3">
-                <label className="text-foreground">
-                  Cliente:
-                  <input
-                    className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
-                    name="cliente"
-                    value={info.cliente}
-                    onChange={e => setInfo({ ...info, cliente: e.target.value })}
-                  />
-                </label>
-                <label className="text-foreground">
-                  Validade da proposta:
-                  <input
-                    className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
-                    name="validade"
-                    value={info.validade}
-                    onChange={e => setInfo({ ...info, validade: e.target.value })}
-                  />
-                </label>
-                <label className="text-foreground">
-                  Entrada:
-                  <input
-                    className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
-                    name="desconto"
-                    value={info.desconto}
-                    onChange={e => setInfo({ ...info, desconto: e.target.value })}
-                  />
-                </label>
-                <label className="text-foreground">
-                  Forma de pagamento:
-                  <input
-                    className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
-                    name="pagamento"
-                    value={info.pagamento}
-                    onChange={e => setInfo({ ...info, pagamento: e.target.value })}
-                  />
-                </label>
-              </div>
-              <div className="flex gap-2 justify-end mt-6">
-                <button
-                  className="px-4 py-2 rounded bg-secondary hover:bg-secondary/90 text-secondary-foreground"
-                  onClick={() => setShowInfoModal(false)}
-                >
-                  Cancelar
-                </button>
-                <button
-                  className="px-4 py-2 rounded bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
-                  onClick={async () => {
-                    setShowInfoModal(false);
-                    // Abrir modal de contatos baseado no tipo de envio
-                    try {
-                      const res = await fetch("/api/contatos");
-                      const lista = await res.json();
-                      setContatos(lista);
-                      setShowModal(true);
-                    } catch (e) {
-                      toast.error("Erro ao buscar contatos: " + e);
-                    }
-                  }}
-                >
-                  {tipoEnvio === 'pdf' ? 'Enviar PDF' : 'Enviar WhatsApp'}
-                </button>
-                <button
-                  className="px-4 py-2 rounded bg-black text-white font-semibold hover:bg-gray-800"
-                  onClick={async () => {
-                    if (!propostaRef.current) return toast.error('Erro ao gerar PDF: componente não encontrado');
-                    const node = propostaRef.current;
-                    const prevBorder = node.style.border;
-                    const prevBoxShadow = node.style.boxShadow;
-                    node.style.border = 'none';
-                    node.style.boxShadow = 'none';
-                    node.style.outline = 'none';
-                    try {
-                      // Configurações otimizadas para performance e tamanho
-                      const canvas = await html2canvas(node, {
-                        backgroundColor: '#fff',
-                        scale: 1.5, // Reduzido para melhor performance
-                        useCORS: true,
-                        logging: false,
-                        width: node.scrollWidth,
-                        height: node.scrollHeight,
-                      });
-                      
-                      // Converter com compressão JPEG para reduzir tamanho
-                      const imgData = canvas.toDataURL('image/jpeg', 0.8); // 80% de qualidade
-                      
-                      // Criar PDF otimizado
-                      const pdf = new jsPDF('p', 'mm', 'a4');
-                      const imgWidth = 210; // A4 width in mm
-                      const pageHeight = 297; // A4 height in mm
-                      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                      let heightLeft = imgHeight;
-                      let position = 0;
-
-                      // Adicionar primeira página
-                      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                      heightLeft -= pageHeight;
-
-                      // Adicionar páginas adicionais se necessário
-                      while (heightLeft >= 0) {
-                        position = heightLeft - imgHeight;
-                        pdf.addPage();
-                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-                        heightLeft -= pageHeight;
-                      }
-
-                      pdf.save(`Orcamento-${info.cliente || 'Cliente'}.pdf`);
-                      toast.success('PDF baixado com sucesso!');
-                    } catch (e) {
-                      toast.error('Erro ao baixar PDF: ' + e);
-                    } finally {
-                      node.style.border = prevBorder;
-                      node.style.boxShadow = prevBoxShadow;
-                    }
-                    // NÃO fechar o modal após baixar PDF - modal permanece aberto
-                  }}
-                >
-                  Baixar PDF
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-        {/* Renderização invisível do PropostaComercial para gerar PDF */}
-        <div style={{ position: 'absolute', left: '-9999px', top: 0, border: 'none', boxShadow: 'none', outline: 'none' }}>
-          <div ref={propostaRef} className=" rounded-none shadow-none border-none isolate">
             <PropostaComercial
-              cliente={info.cliente || 'Cliente'}
-              validade={info.validade || '7 dias'}
+              cliente={info.cliente || "Cliente"}
+              validade={info.validade || "7 dias"}
               desconto={Number(info.desconto)}
-              pagamento={info.pagamento || 'À vista'}
+              pagamento={info.pagamento || "À vista"}
               orcamento={orcamentoData}
               total={valorTotal}
             />
           </div>
         </div>
-
-      
       </div>
+      {/* Renderização invisível do PropostaComercial para gerar PDF */}
+      <div
+        style={{
+          position: "absolute",
+          left: "-9999px",
+          top: 0,
+          border: "none",
+          boxShadow: "none",
+          outline: "none",
+        }}
+      >
+        <div
+          ref={propostaRef}
+          className="rounded-none shadow-none border-none isolate"
+        >
+          <PropostaComercial
+            cliente={info.cliente || "Cliente"}
+            validade={info.validade || "7 dias"}
+            desconto={Number(info.desconto)}
+            pagamento={info.pagamento || "À vista"}
+            orcamento={orcamentoData}
+            total={valorTotal}
+          />
+        </div>
+      </div>
+
+      {/* Modal de informações extras */}
+      {showInfoModal === "pdf" && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-card rounded shadow-lg p-8 max-w-md w-full relative border border-border">
+            <h3 className="text-xl font-bold mb-4 text-foreground">
+              Informações extras
+            </h3>
+            <div className="flex flex-col gap-3">
+              <label className="text-foreground">
+                Cliente:
+                <input
+                  className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
+                  name="cliente"
+                  value={info.cliente}
+                  onChange={(e) =>
+                    setInfo({ ...info, cliente: e.target.value })
+                  }
+                />
+              </label>
+              <label className="text-foreground">
+                Validade da proposta:
+                <input
+                  className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
+                  name="validade"
+                  value={info.validade}
+                  onChange={(e) =>
+                    setInfo({ ...info, validade: e.target.value })
+                  }
+                />
+              </label>
+              <label className="text-foreground">
+                Entrada:
+                <input
+                  className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
+                  name="desconto"
+                  value={info.desconto}
+                  onChange={(e) =>
+                    setInfo({ ...info, desconto: e.target.value })
+                  }
+                />
+              </label>
+              <label className="text-foreground">
+                Forma de pagamento:
+                <input
+                  className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
+                  name="pagamento"
+                  value={info.pagamento}
+                  onChange={(e) =>
+                    setInfo({ ...info, pagamento: e.target.value })
+                  }
+                />
+              </label>
+            </div>
+            <div className="flex gap-2 justify-end mt-6">
+              <button
+                className="px-4 py-2 rounded bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+                onClick={() => setShowInfoModal(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
+                onClick={async () => {
+                  setShowInfoModal(false);
+                  try {
+                    const res = await fetch("/api/contatos");
+                    const lista = await res.json();
+                    setContatos(lista);
+                    setShowModal(true);
+                  } catch (e) {
+                    toast.error("Erro ao buscar contatos: " + e);
+                  }
+                }}
+              >
+                {tipoEnvio === "pdf" ? "Enviar PDF" : "Enviar WhatsApp"}
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-black text-white font-semibold hover:bg-gray-800"
+                onClick={async () => {
+                  if (!propostaRef.current)
+                    return toast.error(
+                      "Erro ao gerar PDF: componente não encontrado"
+                    );
+                  const node = propostaRef.current;
+                  const prevBorder = node.style.border;
+                  const prevBoxShadow = node.style.boxShadow;
+                  node.style.border = "none";
+                  node.style.boxShadow = "none";
+                  node.style.outline = "none";
+                  try {
+                    const canvas = await html2canvas(node, {
+                      backgroundColor: "#fff",
+                      scale: 1.5,
+                      useCORS: true,
+                      logging: false,
+                      width: node.scrollWidth,
+                      height: node.scrollHeight,
+                    });
+
+                    const imgData = canvas.toDataURL("image/jpeg", 0.8);
+                    const pdf = new jsPDF("p", "mm", "a4");
+                    const imgWidth = 210;
+                    const pageHeight = 297;
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    let heightLeft = imgHeight;
+                    let position = 0;
+
+                    pdf.addImage(
+                      imgData,
+                      "JPEG",
+                      0,
+                      position,
+                      imgWidth,
+                      imgHeight
+                    );
+                    heightLeft -= pageHeight;
+
+                    while (heightLeft >= 0) {
+                      position = heightLeft - imgHeight;
+                      pdf.addPage();
+                      pdf.addImage(
+                        imgData,
+                        "JPEG",
+                        0,
+                        position,
+                        imgWidth,
+                        imgHeight
+                      );
+                      heightLeft -= pageHeight;
+                    }
+
+                    pdf.save(`Orcamento-${info.cliente || "Cliente"}.pdf`);
+                    toast.success("PDF baixado com sucesso!");
+                  } catch (e) {
+                    toast.error("Erro ao baixar PDF: " + e);
+                  } finally {
+                    node.style.border = prevBorder;
+                    node.style.boxShadow = prevBoxShadow;
+                  }
+                }}
+              >
+                Baixar PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal de seleção de contatos */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-card rounded shadow-lg p-8 max-w-md w-full relative border border-border">
-            <h3 className="text-xl font-bold mb-4 text-foreground">Selecione os contatos para envio</h3>
+            <h3 className="text-xl font-bold mb-4 text-foreground">
+              Selecione os contatos para envio
+            </h3>
             <input
               className="border rounded px-2 py-1 w-full mb-4 bg-card text-foreground border-border"
               placeholder="Buscar por nome ou telefone..."
               value={buscaContato}
-              onChange={e => setBuscaContato(e.target.value)}
+              onChange={(e) => setBuscaContato(e.target.value)}
               autoFocus
             />
             <div className="flex flex-col gap-2 mb-4 max-h-60 overflow-y-auto">
               {contatos.length === 0 ? (
-                <span className="text-muted-foreground">Nenhum contato encontrado.</span>
-              ) : contatos
-                .filter(contato => {
-                  const nome = (contato.nome || "").normalize("NFD").replace(/[^\w\s.-]/g, "").toLowerCase();
-                  const busca = (buscaContato || "").normalize("NFD").replace(/[^\w\s.-]/g, "").toLowerCase();
-                  const numero = (contato.numero || "");
-                  const buscaNum = buscaContato.replace(/\D/g, "");
-                  return (
-                    nome.includes(busca) ||
-                    (buscaNum && numero.includes(buscaNum))
-                  );
-                })
-                .map(contato => (
-                  <label key={`contato-${contato.numero}-${contato.nome || 'sem-nome'}`} className="flex items-center gap-2 cursor-pointer text-foreground">
-                    <input
-                      type="checkbox"
-                      checked={contatosSelecionados.includes(contato.numero)}
-                      onChange={() => handleCheckContato(contato.numero)}
-                    />
-                    <span>{contato.nome} <span className="text-xs text-muted-foreground">({contato.numero})</span></span>
-                  </label>
-                ))}
+                <span className="text-muted-foreground">
+                  Nenhum contato encontrado.
+                </span>
+              ) : (
+                contatos
+                  .filter((contato) => {
+                    const nome = (contato.nome || "")
+                      .normalize("NFD")
+                      .replace(/[^\w\s.-]/g, "")
+                      .toLowerCase();
+                    const busca = (buscaContato || "")
+                      .normalize("NFD")
+                      .replace(/[^\w\s.-]/g, "")
+                      .toLowerCase();
+                    const numero = contato.numero || "";
+                    const buscaNum = buscaContato.replace(/\D/g, "");
+                    return (
+                      nome.includes(busca) ||
+                      (buscaNum && numero.includes(buscaNum))
+                    );
+                  })
+                  .map((contato) => (
+                    <label
+                      key={`contato-${contato.numero}-${
+                        contato.nome || "sem-nome"
+                      }`}
+                      className="flex items-center gap-2 cursor-pointer text-foreground"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={contatosSelecionados.includes(contato.numero)}
+                        onChange={() => handleCheckContato(contato.numero)}
+                      />
+                      <span>
+                        {contato.nome}{" "}
+                        <span className="text-xs text-muted-foreground">
+                          ({contato.numero})
+                        </span>
+                      </span>
+                    </label>
+                  ))
+              )}
             </div>
             <div className="flex gap-2 justify-end">
               <button
@@ -803,31 +1486,61 @@ export function OrcamentoPage() {
               >
                 Cancelar
               </button>
-              {tipoEnvio === 'mensagem' && (
+              {tipoEnvio === "mensagem" && (
                 <button
                   className="px-4 py-2 rounded bg-primary text-primary-foreground font-semibold hover:bg-primary/90 flex items-center gap-2"
                   disabled={contatosSelecionados.length === 0 || loadingEnviar}
                   onClick={confirmarEnvioMensagem}
                 >
                   {loadingEnviar && (
-                    <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    <svg
+                      className="animate-spin h-4 w-4 mr-1"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8z"
+                      />
                     </svg>
                   )}
                   {loadingEnviar ? "Enviando..." : "Enviar"}
                 </button>
               )}
-              {tipoEnvio === 'pdf' && (
+              {tipoEnvio === "pdf" && (
                 <button
                   className="px-4 py-2 rounded bg-gray-800 text-white font-semibold hover:bg-gray-900 flex items-center gap-2"
                   disabled={contatosSelecionados.length === 0 || loadingEnviar}
                   onClick={enviarPDFWhatsApp}
                 >
                   {loadingEnviar && (
-                    <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z" />
+                    <svg
+                      className="animate-spin h-4 w-4 mr-1"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="white"
+                        strokeWidth="4"
+                        fill="none"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="white"
+                        d="M4 12a8 8 0 018-8v8z"
+                      />
                     </svg>
                   )}
                   {loadingEnviar ? "Enviando..." : "Enviar PDF"}
@@ -837,12 +1550,14 @@ export function OrcamentoPage() {
           </div>
         </div>
       )}
-      
+
       {/* Modal para confirmar nome antes do envio */}
       {showConfirmaNomeModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-card rounded shadow-lg p-8 max-w-md w-full relative border border-border">
-            <h3 className="text-xl font-bold mb-4 text-foreground">Confirmar Nome do Cliente</h3>
+            <h3 className="text-xl font-bold mb-4 text-foreground">
+              Confirmar Nome do Cliente
+            </h3>
             <p className="text-sm text-muted-foreground mb-4">
               Confirme ou edite o nome do cliente que aparecerá no orçamento:
             </p>
@@ -877,9 +1592,24 @@ export function OrcamentoPage() {
                 disabled={!nomeTemporario.trim() || loadingEnviar}
               >
                 {loadingEnviar && (
-                  <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  <svg
+                    className="animate-spin h-4 w-4 mr-1"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8v8z"
+                    />
                   </svg>
                 )}
                 {loadingEnviar ? "Enviando..." : "Enviar Mensagem"}
@@ -888,14 +1618,17 @@ export function OrcamentoPage() {
           </div>
         </div>
       )}
-      
+
       {/* Modal para capturar nome do cliente */}
       {showNomeModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-card rounded shadow-lg p-8 max-w-md w-full relative border border-border">
-            <h3 className="text-xl font-bold mb-4 text-foreground">Nome do Cliente</h3>
+            <h3 className="text-xl font-bold mb-4 text-foreground">
+              Nome do Cliente
+            </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              O contato selecionado não possui nome cadastrado. Por favor, informe o nome do cliente para o orçamento:
+              O contato selecionado não possui nome cadastrado. Por favor,
+              informe o nome do cliente para o orçamento:
             </p>
             <input
               type="text"
@@ -936,5 +1669,4 @@ export function OrcamentoPage() {
       )}
     </>
   );
-
 }
