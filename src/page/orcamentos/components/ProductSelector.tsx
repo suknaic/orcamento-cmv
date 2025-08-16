@@ -221,7 +221,7 @@ export function ProductSelector({ produtoIndex }: ProductSelectorProps) {
                         </div>
                         {mat.preco && (
                           <div className="text-right">
-                            <div className="text-lg font-bold text-primary">
+                            <div className="text-lg font-bold ">
                               R$ {Number(mat.preco).toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
                             </div>
                           </div>

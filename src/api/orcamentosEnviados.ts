@@ -7,19 +7,33 @@ export default {
     const page = parseInt(url.searchParams.get('page') || '1');
     const limit = parseInt(url.searchParams.get('limit') || '10');
     const search = url.searchParams.get('search') || '';
+    const status = url.searchParams.get('status') || '';
     const sortBy = url.searchParams.get('sortBy') || 'data_criacao';
     const sortOrder = url.searchParams.get('sortOrder') || 'DESC';
     
+    console.log('API Request params:', {
+      page, limit, search, status, sortBy, sortOrder
+    });
+    
     const offset = (page - 1) * limit;
     
-    // Query base
-    let whereClause = '';
+    // Query base - construir condições WHERE
+    let whereClauses = [];
     let params: any[] = [];
     
+    // Filtro de busca por texto
     if (search) {
-      whereClause = 'WHERE cliente_nome LIKE ? OR cliente_numero LIKE ? OR produtos LIKE ?';
-      params = [`%${search}%`, `%${search}%`, `%${search}%`];
+      whereClauses.push('(cliente_nome LIKE ? OR cliente_numero LIKE ? OR produtos LIKE ?)');
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`);
     }
+    
+    // Filtro por status
+    if (status) {
+      whereClauses.push('status = ?');
+      params.push(status);
+    }
+    
+    const whereClause = whereClauses.length > 0 ? 'WHERE ' + whereClauses.join(' AND ') : '';
     
     // Validar campos de ordenação
     const validSortFields = ['id', 'cliente_nome', 'valor_total', 'data_criacao', 'data_envio', 'status'];

@@ -153,6 +153,15 @@ export function EnviadosProvider({ children }: { children: React.ReactNode }) {
         params.append('status', filterStatus);
       }
       
+      console.log('Fetching orcamentos with params:', {
+        page,
+        limit: itemsPerPage,
+        search: searchTerm,
+        status: filterStatus,
+        sortBy,
+        sortOrder
+      });
+      
       const response = await fetch(`/api/orcamentosEnviados?${params}`);
       const data = await response.json();
       
@@ -206,17 +215,16 @@ export function EnviadosProvider({ children }: { children: React.ReactNode }) {
 
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
       fetchOrcamentos(page, search, activeFilter, false);
     }
   };
 
   const handleSort = (field: string) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC');
-    } else {
-      setSortBy(field);
-      setSortOrder('DESC');
-    }
+    const newSortOrder = sortBy === field ? (sortOrder === 'ASC' ? 'DESC' : 'ASC') : 'DESC';
+    setSortBy(field);
+    setSortOrder(newSortOrder);
+    setCurrentPage(1);
   };
 
   const abrirReenvioMensagem = async (orcamento: Orcamento) => {
@@ -401,18 +409,26 @@ export function EnviadosProvider({ children }: { children: React.ReactNode }) {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'enviado': return 'text-green-700 dark:text-green-400 bg-green-100 dark:bg-green-900/30 border border-green-200 dark:border-green-800/50';
-      case 'reenviado': return 'text-blue-700 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50';
-      case 'erro_envio': return 'text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50';
-      case 'enviando': return 'text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800/50';
-      default: return 'text-muted-foreground bg-muted border border-border';
+      case 'enviado': return 'text-green-800 dark:text-green-400 bg-green-200 dark:bg-green-900 border border-green-300 dark:border-green-800';
+      case 'reenviado': return 'text-blue-800 dark:text-blue-400 bg-blue-200 dark:bg-blue-900 border border-blue-300 dark:border-blue-800';
+      case 'erro_envio': return 'text-red-800 dark:text-red-400 bg-red-200 dark:bg-red-900 border border-red-300 dark:border-red-800';
+      case 'enviando': return 'text-amber-800 dark:text-amber-400 bg-amber-200 dark:bg-amber-900 border border-amber-300 dark:border-amber-800';
+      default: return 'text-gray-700 dark:text-muted-foreground bg-gray-200 dark:bg-muted border border-gray-300 dark:border-border';
     }
   };
 
   // Efeitos para busca e ordenação
   useEffect(() => {
-    fetchOrcamentos(1, search, activeFilter, initialLoading);
-    fetchStats();
+    if (initialLoading) {
+      // Primera carga
+      fetchOrcamentos(1, search, activeFilter, true);
+      fetchStats();
+    } else {
+      // Cambios posteriores en filtros/orden
+      setCurrentPage(1);
+      fetchOrcamentos(1, search, activeFilter, false);
+      fetchStats();
+    }
   }, [sortBy, sortOrder, activeFilter]);
 
   // Busca em tempo real com debounce
@@ -424,6 +440,7 @@ export function EnviadosProvider({ children }: { children: React.ReactNode }) {
     const newTimeout = setTimeout(() => {
       setCurrentPage(1);
       fetchOrcamentos(1, search, activeFilter, false);
+      setSearchTimeout(null);
     }, 500);
 
     setSearchTimeout(newTimeout);
