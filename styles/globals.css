@@ -161,7 +161,7 @@
 }
 
 .Toastify__toast--success {
-  @apply bg-green-50 dark:bg-green-900/20 text-green-900 dark:text-green-100 border-green-200 dark:border-green-800;
+  @apply bg-green-50 dark:bg-green-900/50 text-green-900 dark:text-green-100 border-green-200 dark:border-green-800;
 }
 
 .Toastify__toast--warning {

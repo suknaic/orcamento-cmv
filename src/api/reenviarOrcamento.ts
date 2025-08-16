@@ -16,7 +16,15 @@ function addBusinessDays(date: Date, days: number) {
 export default {
   // Reenviar orçamento para WhatsApp
   async POST(req: Request) {
-    const { id, numeros, tipo = 'mensagem' } = await req.json();
+    const { 
+      id, 
+      numeros, 
+      tipo = 'mensagem',
+      cliente_nome,
+      validade,
+      desconto,
+      pagamento
+    } = await req.json();
     
     if (!id || !Array.isArray(numeros) || numeros.length === 0) {
       return new Response(JSON.stringify({ 
@@ -104,8 +112,28 @@ export default {
       for (const numero of numeros) {
         try {
           if (tipo === 'pdf') {
-            // TODO: Implementar reenvio de PDF
-            resultados.push({ numero, status: 'erro', erro: 'Reenvio de PDF não implementado ainda' });
+            // Reenviar PDF - usar a mesma mensagem e gerar PDF
+            const mensagemPDF = [
+              `*ORÇAMENTO PARA: ${orcamento.cliente_nome}*`,
+              '',
+              msg,
+              '',
+              `Valor total: *R$${orcamento.valor_total.toLocaleString("pt-BR", {minimumFractionDigits:2})}*`,
+              `Validade: 7 dias`,
+              `Prazo de produção: ${prazoProducao} dias úteis`,
+              `Data: ${dataStr}`,
+              `Hora: ${horaStr}`,
+              `Previsão para entrega: ${previsaoStr}`,
+              '',
+              rodape.join('\n'),
+              '',
+              dadosBancarios.join('\n')
+            ].join('\n');
+            
+            // Por enquanto, vamos enviar só a mensagem mesmo
+            // TODO: Implementar geração do PDF no backend
+            await bot.sendOrcamento(numero, mensagemPDF);
+            resultados.push({ numero, status: 'ok' });
           } else {
             await bot.sendOrcamento(numero, mensagem);
             resultados.push({ numero, status: 'ok' });

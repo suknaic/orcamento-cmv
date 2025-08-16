@@ -62,6 +62,7 @@ export function OrcamentoPage() {
   const [showModal, setShowModal] = useState(false);
   const [contatosSelecionados, setContatosSelecionados] = useState([]);
   const [buscaContato, setBuscaContato] = useState("");
+  const [tipoEnvio, setTipoEnvio] = useState<'mensagem' | 'pdf'>('mensagem'); // Controla o tipo de envio
 
 
   const [materiais, setMateriais] = useState([]);
@@ -243,6 +244,7 @@ export function OrcamentoPage() {
       const res = await fetch("/api/contatos");
       const lista = await res.json();
       setContatos(lista);
+      setTipoEnvio('mensagem'); // Define como envio de mensagem apenas
       setShowModal(true);
     } catch (e) {
       toast.error("Erro ao buscar contatos: " + e);
@@ -290,37 +292,63 @@ export function OrcamentoPage() {
     if (!propostaRef.current) return toast.error('Erro ao gerar PDF tente novamente');
     setLoadingEnviar(true);
     try {
-      // Gera PDF real usando jsPDF
       const jsPDF = (await import('jspdf')).jsPDF;
       const html2canvas = (await import('html2canvas')).default;
-      const pdf = new jsPDF({ unit: 'pt', format: 'a4' });
+      
       const node = propostaRef.current;
-      // Usa html2canvas para capturar imagem, mas insere no PDF corretamente
-      const canvas = await html2canvas(node, { backgroundColor: '#fff', scale: 2 });
-      const imgData = canvas.toDataURL('image/png');
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      // Calcula proporção para caber na página
-      const imgProps = pdf.getImageProperties(imgData);
-      let pdfWidth = pageWidth;
-      let pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      if (pdfHeight > pageHeight) {
-        pdfHeight = pageHeight;
-        pdfWidth = (imgProps.width * pdfHeight) / imgProps.height;
+      const prevBorder = node.style.border;
+      const prevBoxShadow = node.style.boxShadow;
+      node.style.border = 'none';
+      node.style.boxShadow = 'none';
+      node.style.outline = 'none';
+      
+      // Configurações otimizadas para performance
+      const canvas = await html2canvas(node, {
+        backgroundColor: '#fff',
+        scale: 1.5, // Reduzido para melhor performance
+        useCORS: true,
+        logging: false,
+        width: node.scrollWidth,
+        height: node.scrollHeight,
+      });
+      
+      node.style.border = prevBorder;
+      node.style.boxShadow = prevBoxShadow;
+      
+      // Converter com compressão JPEG
+      const imgData = canvas.toDataURL('image/jpeg', 0.8);
+      
+      // Criar PDF otimizado
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
       }
-      pdf.addImage(imgData, 'PNG', (pageWidth - pdfWidth) / 2, 20, pdfWidth, pdfHeight);
+      
       const pdfBlob = pdf.output('blob');
       const formData = new FormData();
-      formData.append('pdf', pdfBlob, 'proposta.pdf');
+      formData.append('pdf', pdfBlob, `Orcamento-${info.cliente || 'Cliente'}.pdf`);
       formData.append('numeros', JSON.stringify(contatosSelecionados));
       formData.append('cliente_nome', info.cliente || 'Cliente');
       formData.append('produtos', JSON.stringify(orcamentoData));
       formData.append('valor_total', valorTotal.toString());
-      // Não envia mensagem junto!
+      
       const resp = await fetch('/api/enviarPDF', {
         method: 'POST',
         body: formData
       });
+      
       let data = null;
       try {
         data = await resp.json();
@@ -329,6 +357,7 @@ export function OrcamentoPage() {
         setShowModal(false);
         return;
       }
+      
       if (data && data.ok) {
         toast.success("PDF enviado para os contatos selecionados!");
       } else {
@@ -540,16 +569,20 @@ export function OrcamentoPage() {
             <span>Mensagem copiada!</span>
           </AnimatedSubscribeButton>
           <button
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded font-semibold"
+            className="bg-green-600 hover:bg-green-700 text-primary-foreground px-4 py-2 rounded font-semibold"
             type="button"
             onClick={enviarWhatsApp}
           >
             Enviar para WhatsApp
           </button>
           <button
-            className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-4 py-2 rounded font-semibold"
+            className="bg-primary hover:bg-primary/90 text-secondary-foreground px-4 py-2 rounded font-semibold"
             type="button"
-            onClick={() => setShowInfoModal('pdf')}
+            onClick={() => {
+              // Buscar contatos e abrir modal para PDF
+              setTipoEnvio('pdf');
+              setShowInfoModal('pdf');
+            }}
           >
             Enviar PDF
           </button>
@@ -608,7 +641,7 @@ export function OrcamentoPage() {
                   className="px-4 py-2 rounded bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
                   onClick={async () => {
                     setShowInfoModal(false);
-                    // Após preencher info extra, abrir modal de contatos para envio de mensagem texto
+                    // Abrir modal de contatos baseado no tipo de envio
                     try {
                       const res = await fetch("/api/contatos");
                       const lista = await res.json();
@@ -619,7 +652,7 @@ export function OrcamentoPage() {
                     }
                   }}
                 >
-                  Enviar WhatsApp
+                  {tipoEnvio === 'pdf' ? 'Enviar PDF' : 'Enviar WhatsApp'}
                 </button>
                 <button
                   className="px-4 py-2 rounded bg-black text-white font-semibold hover:bg-gray-800"
@@ -632,15 +665,41 @@ export function OrcamentoPage() {
                     node.style.boxShadow = 'none';
                     node.style.outline = 'none';
                     try {
-                      const canvas = await html2canvas(node, {backgroundColor: '#fff'});
-                      const imgData = canvas.toDataURL('image/png');
-                      const img = new window.Image();
-                      img.src = imgData;
-                      img.onload = () => {
-                        const pdf = new jsPDF({ orientation: 'p', unit: 'px', format: [img.width, img.height] });
-                        pdf.addImage(img, 'PNG', 0, 0, img.width, img.height);
-                        pdf.save('proposta.pdf');
-                      };
+                      // Configurações otimizadas para performance e tamanho
+                      const canvas = await html2canvas(node, {
+                        backgroundColor: '#fff',
+                        scale: 1.5, // Reduzido para melhor performance
+                        useCORS: true,
+                        logging: false,
+                        width: node.scrollWidth,
+                        height: node.scrollHeight,
+                      });
+                      
+                      // Converter com compressão JPEG para reduzir tamanho
+                      const imgData = canvas.toDataURL('image/jpeg', 0.8); // 80% de qualidade
+                      
+                      // Criar PDF otimizado
+                      const pdf = new jsPDF('p', 'mm', 'a4');
+                      const imgWidth = 210; // A4 width in mm
+                      const pageHeight = 297; // A4 height in mm
+                      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                      let heightLeft = imgHeight;
+                      let position = 0;
+
+                      // Adicionar primeira página
+                      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                      heightLeft -= pageHeight;
+
+                      // Adicionar páginas adicionais se necessário
+                      while (heightLeft >= 0) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                      }
+
+                      pdf.save(`Orcamento-${info.cliente || 'Cliente'}.pdf`);
+                      toast.success('PDF baixado com sucesso!');
                     } catch (e) {
                       toast.error('Erro ao baixar PDF: ' + e);
                     } finally {
@@ -719,32 +778,36 @@ export function OrcamentoPage() {
               >
                 Cancelar
               </button>
-              <button
-                className="px-4 py-2 rounded bg-primary text-primary-foreground font-semibold hover:bg-primary/90 flex items-center gap-2"
-                disabled={contatosSelecionados.length === 0 || loadingEnviar}
-                onClick={enviarMensagemWhatsApp}
-              >
-                {loadingEnviar && (
-                  <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
-                  </svg>
-                )}
-                {loadingEnviar ? "Enviando..." : "Enviar"}
-              </button>
-              <button
-                className="px-4 py-2 rounded bg-gray-800 text-white font-semibold hover:bg-gray-900 flex items-center gap-2"
-                disabled={contatosSelecionados.length === 0 || loadingEnviar}
-                onClick={enviarPDFWhatsApp}
-              >
-                {loadingEnviar && (
-                  <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z" />
-                  </svg>
-                )}
-                {loadingEnviar ? "Enviando..." : "Enviar PDF"}
-              </button>
+              {tipoEnvio === 'mensagem' && (
+                <button
+                  className="px-4 py-2 rounded bg-primary text-primary-foreground font-semibold hover:bg-primary/90 flex items-center gap-2"
+                  disabled={contatosSelecionados.length === 0 || loadingEnviar}
+                  onClick={enviarMensagemWhatsApp}
+                >
+                  {loadingEnviar && (
+                    <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                  )}
+                  {loadingEnviar ? "Enviando..." : "Enviar"}
+                </button>
+              )}
+              {tipoEnvio === 'pdf' && (
+                <button
+                  className="px-4 py-2 rounded bg-gray-800 text-white font-semibold hover:bg-gray-900 flex items-center gap-2"
+                  disabled={contatosSelecionados.length === 0 || loadingEnviar}
+                  onClick={enviarPDFWhatsApp}
+                >
+                  {loadingEnviar && (
+                    <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z" />
+                    </svg>
+                  )}
+                  {loadingEnviar ? "Enviando..." : "Enviar PDF"}
+                </button>
+              )}
             </div>
           </div>
         </div>

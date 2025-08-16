@@ -227,7 +227,7 @@ export function ProdutosCrudPage() {
                 <td className="px-4 text-center align-middle">
                   <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-0">
                   <button
-                    className="inline-flex items-center justify-center text-primary hover:bg-accent rounded-full p-2 mr-0 sm:mr-2 transition"
+                    className="inline-flex items-center justify-center text-secundary hover:bg-red-100 dark:hover:bg-red-900/20 rounded-full p-2 mr-0 sm:mr-2 transition"
                     title="Editar"
                     onClick={() => editarProduto(p)}
                   >
