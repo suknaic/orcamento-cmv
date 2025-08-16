@@ -1,5 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { ToastContainer, toast } from "react-toastify";
+import { PropostaComercial } from "@/components/proposta";
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface Orcamento {
   id: number;
@@ -42,6 +45,17 @@ export function OrcamentosEnviadosPage() {
   const [contatosSelecionados, setContatosSelecionados] = useState<string[]>([]);
   const [loadingReenvio, setLoadingReenvio] = useState(false);
   const [expandedOrcamento, setExpandedOrcamento] = useState<number | null>(null);
+  
+  // Estados para modal de informações extras (igual ao OrcamentoPage)
+  const [showInfoModal, setShowInfoModal] = useState<false | 'pdf' | 'whatsapp'>(false);
+  const [orcamentoSelecionado, setOrcamentoSelecionado] = useState<Orcamento | null>(null);
+  const [info, setInfo] = useState({
+    cliente: "",
+    validade: "7 dias",
+    desconto: "",
+    pagamento: "À vista"
+  });
+  const propostaRef = useRef(null);
 
   const itemsPerPage = 10;
 
@@ -112,7 +126,7 @@ export function OrcamentosEnviadosPage() {
     }
   };
 
-  const abrirReenvioModal = async (orcamento: Orcamento) => {
+  const abrirReenvioMensagem = async (orcamento: Orcamento) => {
     try {
       const res = await fetch("/api/contatos");
       const lista = await res.json();
@@ -122,6 +136,17 @@ export function OrcamentosEnviadosPage() {
     } catch (e) {
       toast.error("Erro ao buscar contatos: " + e);
     }
+  };
+  
+  const abrirReanvioComInfo = (orcamento: Orcamento, tipo: 'pdf' | 'whatsapp') => {
+    setOrcamentoSelecionado(orcamento);
+    setInfo({
+      cliente: orcamento.cliente_nome,
+      validade: "7 dias",
+      desconto: "",
+      pagamento: "À vista"
+    });
+    setShowInfoModal(tipo);
   };
 
   const handleReenvio = async (tipo: 'mensagem' | 'pdf') => {
@@ -334,12 +359,22 @@ export function OrcamentosEnviadosPage() {
                         {formatDate(orc.data_criacao)}
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          onClick={() => abrirReenvioModal(orc)}
-                          className="bg-primary hover:bg-primary/90 text-primary-foreground px-3 py-1 rounded text-xs font-medium"
-                        >
-                          Reenviar
-                        </button>
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => abrirReenvioMensagem(orc)}
+                            className="bg-green-600 hover:bg-green-700 text-white px-2 py-1 rounded text-xs font-medium"
+                            title="Reenviar Mensagem"
+                          >
+                            Msg
+                          </button>
+                          <button
+                            onClick={() => abrirReanvioComInfo(orc, 'pdf')}
+                            className="bg-primary hover:bg-primary/90 text-primary-foreground px-2 py-1 rounded text-xs font-medium"
+                            title="Reenviar PDF"
+                          >
+                            PDF
+                          </button>
+                        </div>
                       </td>
                     </tr>
                     {expandedOrcamento === orc.id && (
@@ -471,6 +506,130 @@ export function OrcamentosEnviadosPage() {
                   {loadingReenvio ? 'Enviando...' : 'Reenviar PDF'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Modal de informações extras */}
+        {(showInfoModal === 'pdf' || showInfoModal === 'whatsapp') && orcamentoSelecionado && (
+          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+            <div className="bg-card rounded shadow-lg p-8 max-w-md w-full relative border border-border">
+              <h3 className="text-xl font-bold mb-4 text-foreground">Informações extras - {orcamentoSelecionado.cliente_nome}</h3>
+              <div className="flex flex-col gap-3">
+                <label className="text-foreground">
+                  Cliente:
+                  <input
+                    className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
+                    name="cliente"
+                    value={info.cliente}
+                    onChange={e => setInfo({ ...info, cliente: e.target.value })}
+                  />
+                </label>
+                <label className="text-foreground">
+                  Validade da proposta:
+                  <input
+                    className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
+                    name="validade"
+                    value={info.validade}
+                    onChange={e => setInfo({ ...info, validade: e.target.value })}
+                  />
+                </label>
+                <label className="text-foreground">
+                  Entrada:
+                  <input
+                    className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
+                    name="desconto"
+                    value={info.desconto}
+                    onChange={e => setInfo({ ...info, desconto: e.target.value })}
+                  />
+                </label>
+                <label className="text-foreground">
+                  Forma de pagamento:
+                  <input
+                    className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
+                    name="pagamento"
+                    value={info.pagamento}
+                    onChange={e => setInfo({ ...info, pagamento: e.target.value })}
+                  />
+                </label>
+              </div>
+              <div className="flex gap-2 justify-end mt-6">
+                <button
+                  className="px-4 py-2 rounded bg-secondary hover:bg-secondary/90 text-secondary-foreground"
+                  onClick={() => setShowInfoModal(false)}
+                >
+                  Cancelar
+                </button>
+                
+                {showInfoModal === 'pdf' && (
+                  <>
+                    <button
+                      className="px-4 py-2 rounded bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
+                      onClick={async () => {
+                        setShowInfoModal(false);
+                        // Abrir modal de contatos para envio de PDF
+                        try {
+                          const res = await fetch("/api/contatos");
+                          const lista = await res.json();
+                          setContatos(lista);
+                          setShowReenvioModal(orcamentoSelecionado);
+                          setContatosSelecionados(orcamentoSelecionado.cliente_numero ? [orcamentoSelecionado.cliente_numero] : []);
+                        } catch (e) {
+                          toast.error("Erro ao buscar contatos: " + e);
+                        }
+                      }}
+                    >
+                      Enviar PDF
+                    </button>
+                    <button
+                      className="px-4 py-2 rounded bg-gray-800 text-white font-semibold hover:bg-gray-900"
+                      onClick={async () => {
+                        if (!propostaRef.current || !orcamentoSelecionado) return toast.error('Erro ao gerar PDF');
+                        const node = propostaRef.current;
+                        const prevBorder = node.style.border;
+                        const prevBoxShadow = node.style.boxShadow;
+                        node.style.border = 'none';
+                        node.style.boxShadow = 'none';
+                        node.style.outline = 'none';
+                        try {
+                          const canvas = await html2canvas(node, {backgroundColor: '#fff'});
+                          const imgData = canvas.toDataURL('image/png');
+                          const img = new window.Image();
+                          img.src = imgData;
+                          img.onload = () => {
+                            const pdf = new jsPDF({ orientation: 'p', unit: 'px', format: [img.width, img.height] });
+                            pdf.addImage(img, 'PNG', 0, 0, img.width, img.height);
+                            pdf.save(`orcamento-${orcamentoSelecionado.id}.pdf`);
+                          };
+                        } catch (e) {
+                          toast.error('Erro ao baixar PDF: ' + e);
+                        } finally {
+                          node.style.border = prevBorder;
+                          node.style.boxShadow = prevBoxShadow;
+                        }
+                      }}
+                    >
+                      Baixar PDF
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Renderização invisível do PropostaComercial para gerar PDF */}
+        {orcamentoSelecionado && (
+          <div style={{ position: 'absolute', left: '-9999px', top: 0, border: 'none', boxShadow: 'none', outline: 'none' }}>
+            <div ref={propostaRef} className="rounded-none shadow-none border-none isolate">
+              <PropostaComercial
+                cliente={info.cliente || orcamentoSelecionado.cliente_nome}
+                validade={info.validade || '7 dias'}
+                desconto={Number(info.desconto) || 0}
+                pagamento={info.pagamento || 'À vista'}
+                orcamento={orcamentoSelecionado.produtos}
+                total={orcamentoSelecionado.valor_total}
+              />
             </div>
           </div>
         )}

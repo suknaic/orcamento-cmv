@@ -534,7 +534,7 @@ export function OrcamentoPage() {
           <AnimatedSubscribeButton
             subscribeStatus={copiado}
             onClick={copiar}
-            className="bg-black hover:bg-gray-800 px-4 py-2 rounded font-semibold"
+            className="bg-secondary text-secondary-foreground px-4 py-2 rounded font-semibold"
           >
             <span>Copiar orçamento</span>
             <span>Mensagem copiada!</span>
@@ -647,6 +647,7 @@ export function OrcamentoPage() {
                       node.style.border = prevBorder;
                       node.style.boxShadow = prevBoxShadow;
                     }
+                    // NÃO fechar o modal após baixar PDF - modal permanece aberto
                   }}
                 >
                   Baixar PDF
