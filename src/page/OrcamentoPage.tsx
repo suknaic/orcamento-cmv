@@ -1,9 +1,12 @@
 import { useEffect, useState, useRef } from "react";
 import { AnimatedSubscribeButton } from "@/components/magicui/animated-subscribe-button";
 import { PropostaComercial } from "@/components/proposta";
+import { Modal } from "@/components/ui/modal";
+import { Button, CancelButton, SendButton } from "@/components/ui/button-variants";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 // (Removido daqui, será definido dentro do componente OrcamentoPage)
 
@@ -32,7 +35,7 @@ function calcularOrcamento(material, tipo, preco, largura, altura, quantidade) {
     return precoNum * quantidadeNum;
   }
   if (tipo === "milheiro") {
-    return precoNum * (quantidadeNum / 1000);
+    return precoNum * quantidadeNum;
   }
   if (tipo === "kit") {
     return precoNum * quantidadeNum;
@@ -520,12 +523,12 @@ export function OrcamentoPage() {
 
         {/* Seção de Produtos */}
         <div className="bg-card rounded-xl shadow-lg border border-border overflow-hidden">
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-6 py-4 border-b border-border">
+          <div className="bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 px-6 py-4 border-b border-border">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <div className="w-10 h-10 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center">
                   <svg
-                    className="w-6 h-6 text-blue-600"
+                    className="w-6 h-6 text-primary"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -539,18 +542,18 @@ export function OrcamentoPage() {
                   </svg>
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">
+                  <h2 className="text-xl font-bold text-foreground">
                     1. Selecionar Produtos
                   </h2>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     Adicione os produtos e configure suas especificações
                   </p>
                 </div>
               </div>
               <div className="text-right">
-                <div className="bg-white rounded-lg px-3 py-2 shadow-sm border">
-                  <p className="text-xs text-gray-500">Total de itens</p>
-                  <p className="text-2xl font-bold text-blue-600">
+                <div className="bg-card border border-border rounded-lg px-3 py-2 shadow-sm">
+                  <p className="text-xs text-muted-foreground">Total de itens</p>
+                  <p className="text-2xl font-bold text-primary">
                     {produtos.length}
                   </p>
                 </div>
@@ -562,19 +565,19 @@ export function OrcamentoPage() {
             {produtos.map((p, idx) => (
               <div
                 key={`produto-${idx}-${p.materialSelecionado || "empty"}`}
-                className="bg-gray-50 border border-gray-200 rounded-lg p-5 hover:border-primary/30 transition-all duration-200 hover:shadow-md"
+                className="bg-muted/30 border border-border rounded-lg p-5 hover:border-primary/30 transition-all duration-200 hover:shadow-md"
               >
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center text-sm font-bold text-primary">
+                  <div className="w-8 h-8 bg-primary/10 dark:bg-primary/20 rounded-full flex items-center justify-center text-sm font-bold text-primary">
                     {idx + 1}
                   </div>
-                  <h3 className="font-semibold text-gray-800">
+                  <h3 className="font-semibold text-foreground">
                     Produto {idx + 1}
                   </h3>
                   {produtos.length > 1 && (
                     <button
                       type="button"
-                      className="ml-auto text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg p-2 transition-colors"
+                      className="ml-auto text-destructive hover:text-destructive/80 hover:bg-destructive/10 rounded-lg p-2 transition-colors"
                       title="Remover produto"
                       onClick={() =>
                         setProdutos((produtos) =>
@@ -602,7 +605,7 @@ export function OrcamentoPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
                   {/* Campo de Produto */}
                   <div className="lg:col-span-2">
-                    <label className="flex items-center gap-2 mb-2 font-medium text-gray-700">
+                    <label className="flex items-center gap-2 mb-2 font-medium text-foreground">
                       <svg
                         className="w-4 h-4 text-primary"
                         fill="none"
@@ -624,7 +627,7 @@ export function OrcamentoPage() {
                           materialRefs.current[idx] = el;
                         }}
                         type="text"
-                        className="border border-gray-300 rounded-lg px-4 py-3 w-full focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors outline-none bg-white text-gray-800 placeholder:text-gray-400"
+                        className="border border-input rounded-lg px-4 py-3 w-full focus:ring-2 focus:ring-ring focus:border-ring transition-colors outline-none bg-background text-foreground placeholder:text-muted-foreground"
                         placeholder="Digite ou busque um produto..."
                         value={p._buscaMaterial || ""}
                         onChange={(e) => {
@@ -662,7 +665,7 @@ export function OrcamentoPage() {
                       />
                       <button
                         type="button"
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary transition-colors"
                         tabIndex={-1}
                         onClick={() =>
                           setProdutos((produtos) =>
@@ -692,7 +695,7 @@ export function OrcamentoPage() {
                         </svg>
                       </button>
                       {p._showDropdown && (
-                        <div className="absolute z-30 left-0 right-0 bg-white border border-gray-200 rounded-b-lg shadow-xl max-h-60 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
+                        <div className="absolute z-30 left-0 right-0 bg-popover border border-border rounded-b-lg shadow-xl max-h-60 overflow-y-auto animate-in slide-in-from-top-2 duration-200">
                           {materiais.filter((mat) => {
                             const busca = (
                               p._buscaMaterial || ""
@@ -703,7 +706,7 @@ export function OrcamentoPage() {
                           }).length === 0 ? (
                             <div className="px-4 py-6 text-center">
                               <svg
-                                className="w-12 h-12 mx-auto mb-3 text-gray-300"
+                                className="w-12 h-12 mx-auto mb-3 text-muted-foreground"
                                 fill="none"
                                 stroke="currentColor"
                                 viewBox="0 0 24 24"
@@ -715,10 +718,10 @@ export function OrcamentoPage() {
                                   d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
                                 />
                               </svg>
-                              <p className="text-gray-500 text-sm">
+                              <p className="text-muted-foreground text-sm">
                                 Nenhum produto encontrado
                               </p>
-                              <p className="text-gray-400 text-xs mt-1">
+                              <p className="text-muted-foreground/70 text-xs mt-1">
                                 Tente outro termo de busca
                               </p>
                             </div>
@@ -737,9 +740,9 @@ export function OrcamentoPage() {
                                 <button
                                   type="button"
                                   key={`material-${idx}-${mat.nome}`}
-                                  className={`w-full text-left px-4 py-3 hover:bg-primary/5 transition-colors flex items-center gap-3 border-b border-gray-100 last:border-b-0 ${
+                                  className={`w-full text-left px-4 py-3 hover:bg-accent transition-colors flex items-center gap-3 border-b border-border last:border-b-0 ${
                                     p.materialSelecionado === mat.nome
-                                      ? "bg-primary/10 border-primary/20"
+                                      ? "bg-accent/50 border-primary/20"
                                       : ""
                                   }`}
                                   onClick={() => {
@@ -764,20 +767,20 @@ export function OrcamentoPage() {
                                 >
                                   <div className="flex-1">
                                     <div
-                                      className="font-medium text-gray-800 truncate"
+                                      className="font-medium text-foreground truncate"
                                       title={mat.nome}
                                     >
                                       {mat.nome}
                                     </div>
-                                    <div className="text-xs text-gray-500 mt-1">
-                                      <span className="bg-gray-100 px-2 py-1 rounded-full">
+                                    <div className="text-xs text-muted-foreground mt-1">
+                                      <span className="bg-muted px-2 py-1 rounded-full">
                                         {mat.tipo || "unidade"}
                                       </span>
                                     </div>
                                   </div>
                                   {mat.preco && (
                                     <div className="text-right">
-                                      <div className="text-lg font-bold text-green-600">
+                                      <div className="text-lg font-bold text-primary">
                                         R${" "}
                                         {Number(mat.preco).toLocaleString(
                                           "pt-BR",
@@ -797,9 +800,9 @@ export function OrcamentoPage() {
                   {p.tipo &&
                     tiposMateriais[p.tipo]?.campos.includes("largura") && (
                       <div>
-                        <label className="flex items-center gap-2 mb-2 font-medium text-gray-700">
+                        <label className="flex items-center gap-2 mb-2 font-medium text-foreground">
                           <svg
-                            className="w-4 h-4 text-orange-500"
+                            className="w-4 h-4 text-primary"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -817,7 +820,7 @@ export function OrcamentoPage() {
                           type="number"
                           min={0}
                           step={0.01}
-                          className="border border-gray-300 rounded-lg px-3 py-3 w-full text-gray-800 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors outline-none"
+                          className="border border-input rounded-lg px-3 py-3 w-full text-foreground bg-background focus:ring-2 focus:ring-ring focus:border-ring transition-colors outline-none"
                           placeholder="0,00"
                           value={p.largura}
                           onChange={(e) =>
@@ -836,9 +839,9 @@ export function OrcamentoPage() {
                   {p.tipo &&
                     tiposMateriais[p.tipo]?.campos.includes("altura") && (
                       <div>
-                        <label className="flex items-center gap-2 mb-2 font-medium text-gray-700">
+                        <label className="flex items-center gap-2 mb-2 font-medium text-foreground">
                           <svg
-                            className="w-4 h-4 text-orange-500"
+                            className="w-4 h-4 text-primary"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -856,7 +859,7 @@ export function OrcamentoPage() {
                           type="number"
                           min={0}
                           step={0.01}
-                          className="border border-gray-300 rounded-lg px-3 py-3 w-full text-gray-800 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors outline-none"
+                          className="border border-input rounded-lg px-3 py-3 w-full text-foreground bg-background focus:ring-2 focus:ring-ring focus:border-ring transition-colors outline-none"
                           placeholder="0,00"
                           value={p.altura}
                           onChange={(e) =>
@@ -875,9 +878,9 @@ export function OrcamentoPage() {
                   {p.tipo &&
                     tiposMateriais[p.tipo]?.campos.includes("quantidade") && (
                       <div>
-                        <label className="flex items-center gap-2 mb-2 font-medium text-gray-700">
+                        <label className="flex items-center gap-2 mb-2 font-medium text-foreground">
                           <svg
-                            className="w-4 h-4 text-purple-500"
+                            className="w-4 h-4 text-primary"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -895,7 +898,7 @@ export function OrcamentoPage() {
                           type="number"
                           min={1}
                           step={1}
-                          className="border border-gray-300 rounded-lg px-3 py-3 w-full text-gray-800 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-colors outline-none"
+                          className="border border-input rounded-lg px-3 py-3 w-full text-foreground bg-background focus:ring-2 focus:ring-ring focus:border-ring transition-colors outline-none"
                           placeholder="1"
                           value={p.quantidade}
                           onChange={(e) =>
@@ -916,9 +919,9 @@ export function OrcamentoPage() {
 
                   {/* Subtotal */}
                   <div>
-                    <label className="flex items-center gap-2 mb-2 font-medium text-gray-700">
+                    <label className="flex items-center gap-2 mb-2 font-medium text-foreground">
                       <svg
-                        className="w-4 h-4 text-green-600"
+                        className="w-4 h-4 text-primary"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -932,15 +935,15 @@ export function OrcamentoPage() {
                       </svg>
                       Subtotal
                     </label>
-                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg px-4 py-4 text-center">
-                      <div className="text-3xl font-bold text-green-700">
+                    <div className="bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 border-2 border-primary/20 rounded-lg px-4 py-4 text-center">
+                      <div className="text-3xl font-bold text-primary">
                         R${" "}
                         {p.valor.toLocaleString("pt-BR", {
                           minimumFractionDigits: 2,
                         })}
                       </div>
                       {p.quantidade > 1 && p.valor > 0 && (
-                        <div className="text-sm text-green-600 mt-1">
+                        <div className="text-sm text-primary/80 mt-1">
                           R${" "}
                           {(p.valor / p.quantidade).toLocaleString("pt-BR", {
                             minimumFractionDigits: 2,
@@ -1016,11 +1019,11 @@ export function OrcamentoPage() {
         </div>
         {/* Seção de Resumo */}
         <div className="bg-card rounded-xl shadow-lg border border-border overflow-hidden">
-          <div className="bg-gradient-to-r from-emerald-50 to-green-50 px-6 py-4 border-b border-border">
+          <div className="bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 px-6 py-4 border-b border-border">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+              <div className="w-10 h-10 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center">
                 <svg
-                  className="w-6 h-6 text-emerald-600"
+                  className="w-6 h-6 text-primary"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -1034,10 +1037,10 @@ export function OrcamentoPage() {
                 </svg>
               </div>
               <div>
-                <h2 className="text-xl font-bold text-gray-800">
+                <h2 className="text-xl font-bold text-foreground">
                   2. Resumo do Orçamento
                 </h2>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-muted-foreground">
                   Confira os valores e visualize sua proposta
                 </p>
               </div>
@@ -1050,11 +1053,11 @@ export function OrcamentoPage() {
               <div className="space-y-6">
                
                 <div className="bg-card rounded-xl shadow-lg border border-border overflow-hidden">
-                  <div className=" px-6 py-4">
+                  <div className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <div className="w-10 h-10 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center">
                         <svg
-                          className="w-6 h-6 text-purple-600"
+                          className="w-6 h-6 text-primary"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -1068,10 +1071,10 @@ export function OrcamentoPage() {
                         </svg>
                       </div>
                       <div>
-                        <h2 className="text-xl font-bold text-gray-800">
+                        <h2 className="text-xl font-bold text-foreground">
                           Enviar Orçamento
                         </h2>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted-foreground">
                           Escolha a forma de compartilhar sua proposta comercial
                         </p>
                       </div>
@@ -1082,9 +1085,9 @@ export function OrcamentoPage() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="group flex flex-col h-full">
                         <div className="text-center mb-4 flex-1 flex flex-col justify-center">
-                          <div className="w-16 h-16 mx-auto bg-gray-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-gray-200 transition-colors">
+                          <div className="w-16 h-16 mx-auto bg-muted rounded-full flex items-center justify-center mb-3 group-hover:bg-accent transition-colors">
                             <svg
-                              className="w-8 h-8 text-gray-600"
+                              className="w-8 h-8 text-muted-foreground"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1097,15 +1100,15 @@ export function OrcamentoPage() {
                               />
                             </svg>
                           </div>
-                          <h3 className="font-bold text-gray-800 mb-2">Copiar Texto</h3>
-                          <p className="text-sm text-gray-600">
+                          <h3 className="font-bold text-foreground mb-2">Copiar Texto</h3>
+                          <p className="text-sm text-muted-foreground">
                             Copia o orçamento para usar em qualquer lugar
                           </p>
                         </div>
                         <AnimatedSubscribeButton
                           subscribeStatus={copiado}
                           onClick={copiar}
-                          className="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300 px-6 py-[38] rounded-xl font-bold transition-all duration-200 hover:scale-105 hover:shadow-lg min-h-[56px]"
+                          className="w-full bg-muted hover:bg-accent text-foreground border border-border px-6 py-[38] rounded-xl font-bold transition-all duration-200 hover:scale-105 hover:shadow-lg min-h-[56px]"
                         >
                           <span>Copiar Orçamento</span>
                           <span>✅ Copiado!</span>
@@ -1114,9 +1117,9 @@ export function OrcamentoPage() {
 
                       <div className="group flex flex-col h-full">
                         <div className="text-center mb-4 flex-1 flex flex-col justify-center">
-                          <div className="w-16 h-16 mx-auto bg-green-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-green-200 transition-colors">
+                          <div className="w-16 h-16 mx-auto bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mb-3 group-hover:bg-green-200 dark:group-hover:bg-green-900/50 transition-colors">
                             <svg
-                              className="w-8 h-8 text-green-600"
+                              className="w-8 h-8 text-green-600 dark:text-green-400"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1129,8 +1132,8 @@ export function OrcamentoPage() {
                               />
                             </svg>
                           </div>
-                          <h3 className="font-bold text-gray-800 mb-2">Mensagem WhatsApp</h3>
-                          <p className="text-sm text-gray-600">
+                          <h3 className="font-bold text-foreground mb-2">Mensagem WhatsApp</h3>
+                          <p className="text-sm text-muted-foreground">
                             Envia mensagem de texto via WhatsApp
                           </p>
                         </div>
@@ -1145,9 +1148,9 @@ export function OrcamentoPage() {
 
                       <div className="group flex flex-col h-full">
                         <div className="text-center mb-4 flex-1 flex flex-col justify-center">
-                          <div className="w-16 h-16 mx-auto bg-red-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-red-200 transition-colors">
+                          <div className="w-16 h-16 mx-auto bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-3 group-hover:bg-red-200 dark:group-hover:bg-red-900/50 transition-colors">
                             <svg
-                              className="w-8 h-8 text-red-600"
+                              className="w-8 h-8 text-red-600 dark:text-red-400"
                               fill="none"
                               stroke="currentColor"
                               viewBox="0 0 24 24"
@@ -1160,8 +1163,8 @@ export function OrcamentoPage() {
                               />
                             </svg>
                           </div>
-                          <h3 className="font-bold text-gray-800 mb-2">Proposta <br /> PDF</h3>
-                          <p className="text-sm text-gray-600">
+                          <h3 className="font-bold text-foreground mb-2">Proposta <br /> PDF</h3>
+                          <p className="text-sm text-muted-foreground">
                             Gera PDF profissional e envia via WhatsApp
                           </p>
                         </div>
@@ -1183,8 +1186,8 @@ export function OrcamentoPage() {
 
               {/* Coluna Direita - Prévia da Mensagem */}
               <div className="space-y-6">
-                <div className="bg-gray-50 border border-gray-200 rounded-xl p-6">
-                  <label className="flex items-center gap-2 text-lg font-bold text-gray-800 mb-4">
+                <div className="bg-muted/30 border border-border rounded-xl p-6">
+                  <label className="flex items-center gap-2 text-lg font-bold text-foreground mb-4">
                     <svg
                       className="w-5 h-5"
                       fill="none"
@@ -1201,12 +1204,12 @@ export function OrcamentoPage() {
                     Prévia da Mensagem WhatsApp
                   </label>
                   <textarea
-                    className="border border-gray-300 rounded-lg px-4 py-4 w-full text-sm bg-white text-gray-700 resize-none font-mono leading-relaxed"
+                    className="border border-input rounded-lg px-4 py-4 w-full text-sm bg-background text-foreground resize-none font-mono leading-relaxed"
                     rows={12}
                     value={mensagem}
                     readOnly
                   />
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-muted-foreground mt-2">
                     Esta é a mensagem que será enviada via WhatsApp
                   </p>
                 </div>
@@ -1270,112 +1273,76 @@ export function OrcamentoPage() {
       </div>
 
       {/* Modal de informações extras */}
-      {showInfoModal === "pdf" && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-card rounded shadow-lg p-8 max-w-md w-full relative border border-border">
-            <h3 className="text-xl font-bold mb-4 text-foreground">
-              Informações extras
-            </h3>
-            <div className="flex flex-col gap-3">
-              <label className="text-foreground">
-                Cliente:
-                <input
-                  className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
-                  name="cliente"
-                  value={info.cliente}
-                  onChange={(e) =>
-                    setInfo({ ...info, cliente: e.target.value })
-                  }
-                />
-              </label>
-              <label className="text-foreground">
-                Validade da proposta:
-                <input
-                  className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
-                  name="validade"
-                  value={info.validade}
-                  onChange={(e) =>
-                    setInfo({ ...info, validade: e.target.value })
-                  }
-                />
-              </label>
-              <label className="text-foreground">
-                Entrada:
-                <input
-                  className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
-                  name="desconto"
-                  value={info.desconto}
-                  onChange={(e) =>
-                    setInfo({ ...info, desconto: e.target.value })
-                  }
-                />
-              </label>
-              <label className="text-foreground">
-                Forma de pagamento:
-                <input
-                  className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
-                  name="pagamento"
-                  value={info.pagamento}
-                  onChange={(e) =>
-                    setInfo({ ...info, pagamento: e.target.value })
-                  }
-                />
-              </label>
-            </div>
-            <div className="flex gap-2 justify-end mt-6">
-              <button
-                className="px-4 py-2 rounded bg-secondary hover:bg-secondary/90 text-secondary-foreground"
-                onClick={() => setShowInfoModal(false)}
-              >
-                Cancelar
-              </button>
-              <button
-                className="px-4 py-2 rounded bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
-                onClick={async () => {
-                  setShowInfoModal(false);
-                  try {
-                    const res = await fetch("/api/contatos");
-                    const lista = await res.json();
-                    setContatos(lista);
-                    setShowModal(true);
-                  } catch (e) {
-                    toast.error("Erro ao buscar contatos: " + e);
-                  }
-                }}
-              >
-                {tipoEnvio === "pdf" ? "Enviar PDF" : "Enviar WhatsApp"}
-              </button>
-              <button
-                className="px-4 py-2 rounded bg-black text-white font-semibold hover:bg-gray-800"
-                onClick={async () => {
-                  if (!propostaRef.current)
-                    return toast.error(
-                      "Erro ao gerar PDF: componente não encontrado"
-                    );
-                  const node = propostaRef.current;
-                  const prevBorder = node.style.border;
-                  const prevBoxShadow = node.style.boxShadow;
-                  node.style.border = "none";
-                  node.style.boxShadow = "none";
-                  node.style.outline = "none";
-                  try {
-                    const canvas = await html2canvas(node, {
-                      backgroundColor: "#fff",
-                      scale: 1.5,
-                      useCORS: true,
-                      logging: false,
-                      width: node.scrollWidth,
-                      height: node.scrollHeight,
-                    });
+      <Modal
+        isOpen={showInfoModal === "pdf"}
+        onClose={() => setShowInfoModal(false)}
+        title="Finalizar Orçamento"
+        subtitle="Complete as informações para gerar o orçamento"
+        variant="default"
+        size="lg"
+        footer={
+          <div className="px-6 py-4 flex flex-col sm:flex-row gap-3 justify-end">
+            <CancelButton onClick={() => setShowInfoModal(false)} />
+            <SendButton
+              onClick={async () => {
+                setShowInfoModal(false);
+                try {
+                  const res = await fetch("/api/contatos");
+                  const lista = await res.json();
+                  setContatos(lista);
+                  setShowModal(true);
+                } catch (e) {
+                  toast.error("Erro ao buscar contatos: " + e);
+                }
+              }}
+              loading={loadingEnviar}
+            >
+              {tipoEnvio === "pdf" ? "Continuar para Envio PDF" : "Continuar para WhatsApp"}
+            </SendButton>
+            <Button
+              variant="secondary"
+              onClick={async () => {
+                if (!propostaRef.current)
+                  return toast.error(
+                    "Erro ao gerar PDF: componente não encontrado"
+                  );
+                const node = propostaRef.current;
+                const prevBorder = node.style.border;
+                const prevBoxShadow = node.style.boxShadow;
+                node.style.border = "none";
+                node.style.boxShadow = "none";
+                node.style.outline = "none";
+                try {
+                  const canvas = await html2canvas(node, {
+                    backgroundColor: "#fff",
+                    scale: 1.5,
+                    useCORS: true,
+                    logging: false,
+                    width: node.scrollWidth,
+                    height: node.scrollHeight,
+                  });
 
-                    const imgData = canvas.toDataURL("image/jpeg", 0.8);
-                    const pdf = new jsPDF("p", "mm", "a4");
-                    const imgWidth = 210;
-                    const pageHeight = 297;
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                    let heightLeft = imgHeight;
-                    let position = 0;
+                  const imgData = canvas.toDataURL("image/jpeg", 0.8);
+                  const pdf = new jsPDF("p", "mm", "a4");
+                  const imgWidth = 210;
+                  const pageHeight = 297;
+                  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                  let heightLeft = imgHeight;
+                  let position = 0;
 
+                  pdf.addImage(
+                    imgData,
+                    "JPEG",
+                    0,
+                    position,
+                    imgWidth,
+                    imgHeight
+                  );
+                  heightLeft -= pageHeight;
+
+                  while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
                     pdf.addImage(
                       imgData,
                       "JPEG",
@@ -1385,173 +1352,345 @@ export function OrcamentoPage() {
                       imgHeight
                     );
                     heightLeft -= pageHeight;
-
-                    while (heightLeft >= 0) {
-                      position = heightLeft - imgHeight;
-                      pdf.addPage();
-                      pdf.addImage(
-                        imgData,
-                        "JPEG",
-                        0,
-                        position,
-                        imgWidth,
-                        imgHeight
-                      );
-                      heightLeft -= pageHeight;
-                    }
-
-                    pdf.save(`Orcamento-${info.cliente || "Cliente"}.pdf`);
-                    toast.success("PDF baixado com sucesso!");
-                  } catch (e) {
-                    toast.error("Erro ao baixar PDF: " + e);
-                  } finally {
-                    node.style.border = prevBorder;
-                    node.style.boxShadow = prevBoxShadow;
                   }
-                }}
-              >
-                Baixar PDF
-              </button>
+
+                  pdf.save(`Orcamento_${info.cliente || "Cliente"}.pdf`);
+
+                  node.style.border = prevBorder;
+                  node.style.boxShadow = prevBoxShadow;
+
+                  toast.success("PDF salvo com sucesso!");
+                } catch (error) {
+                  node.style.border = prevBorder;
+                  node.style.boxShadow = prevBoxShadow;
+                  console.error("Erro ao gerar PDF:", error);
+                  toast.error("Erro ao gerar PDF: " + error);
+                }
+              }}
+              icon={
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              }
+            >
+              Baixar PDF
+            </Button>
+            
+          </div>
+        }
+      >
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  Nome do Cliente
+                </div>
+              </label>
+              <input
+                className="w-full px-3 py-2.5 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                name="cliente"
+                value={info.cliente}
+                placeholder="Ex: João Silva"
+                onChange={(e) =>
+                  setInfo({ ...info, cliente: e.target.value })
+                }
+              />
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3a1 1 0 011-1h6a1 1 0 011 1v4m-5 8a1 1 0 100-2 1 1 0 000 2zm5-8H9a1 1 0 00-1 1v10a1 1 0 001 1h6a1 1 0 001-1V8a1 1 0 00-1-1z" />
+                    </svg>
+                    Validade
+                  </div>
+                </label>
+                <input
+                  className="w-full px-3 py-2.5 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                  name="validade"
+                  value={info.validade}
+                  placeholder="Ex: 7 dias"
+                  onChange={(e) =>
+                    setInfo({ ...info, validade: e.target.value })
+                  }
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  <div className="flex items-center gap-2">
+                    <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                    </svg>
+                    Entrada/Desconto
+                  </div>
+                </label>
+                <input
+                  className="w-full px-3 py-2.5 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                  name="desconto"
+                  value={info.desconto}
+                  placeholder="Ex: R$ 500,00 ou 10%"
+                  onChange={(e) =>
+                    setInfo({ ...info, desconto: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-foreground mb-2">
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                  </svg>
+                  Forma de Pagamento
+                </div>
+              </label>
+              <input
+                className="w-full px-3 py-2.5 border border-input rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                name="pagamento"
+                value={info.pagamento}
+                placeholder="Ex: À vista, 2x sem juros, etc."
+                onChange={(e) =>
+                  setInfo({ ...info, pagamento: e.target.value })
+                }
+              />
+            </div>
+          </div>
+          
+          {/* Resumo do orçamento */}
+          <div className="p-4 bg-accent/10 rounded-lg border border-accent/20">
+            <h4 className="font-semibold text-foreground flex items-center gap-2 mb-3">
+              <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+              </svg>
+              Resumo do Orçamento
+            </h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground">Valor Total:</span>
+                <span className="font-bold text-lg text-primary">R$ {valorTotal.toFixed(2).replace(".", ",")}</span>
+              </div>
+              {info.desconto && (
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Entrada/Desconto:</span>
+                  <span className="font-semibold text-green-600">{info.desconto}</span>
+                </div>
+              )}
+              <div className="flex justify-between items-center pt-2 border-t border-accent/30">
+                <span className="text-muted-foreground">Total de itens:</span>
+                <span className="font-semibold text-foreground">{produtos.filter(p => p.materialSelecionado).length}</span>
+              </div>
             </div>
           </div>
         </div>
-      )}
-
+      
+      </Modal>
       {/* Modal de seleção de contatos */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-card rounded shadow-lg p-8 max-w-md w-full relative border border-border">
-            <h3 className="text-xl font-bold mb-4 text-foreground">
-              Selecione os contatos para envio
-            </h3>
-            <input
-              className="border rounded px-2 py-1 w-full mb-4 bg-card text-foreground border-border"
-              placeholder="Buscar por nome ou telefone..."
-              value={buscaContato}
-              onChange={(e) => setBuscaContato(e.target.value)}
-              autoFocus
-            />
-            <div className="flex flex-col gap-2 mb-4 max-h-60 overflow-y-auto">
-              {contatos.length === 0 ? (
-                <span className="text-muted-foreground">
-                  Nenhum contato encontrado.
-                </span>
-              ) : (
-                contatos
-                  .filter((contato) => {
-                    const nome = (contato.nome || "")
-                      .normalize("NFD")
-                      .replace(/[^\w\s.-]/g, "")
-                      .toLowerCase();
-                    const busca = (buscaContato || "")
-                      .normalize("NFD")
-                      .replace(/[^\w\s.-]/g, "")
-                      .toLowerCase();
-                    const numero = contato.numero || "";
-                    const buscaNum = buscaContato.replace(/\D/g, "");
-                    return (
-                      nome.includes(busca) ||
-                      (buscaNum && numero.includes(buscaNum))
-                    );
-                  })
-                  .map((contato) => (
-                    <label
-                      key={`contato-${contato.numero}-${
-                        contato.nome || "sem-nome"
-                      }`}
-                      className="flex items-center gap-2 cursor-pointer text-foreground"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={contatosSelecionados.includes(contato.numero)}
-                        onChange={() => handleCheckContato(contato.numero)}
-                      />
-                      <span>
-                        {contato.nome}{" "}
-                        <span className="text-xs text-muted-foreground">
-                          ({contato.numero})
-                        </span>
-                      </span>
-                    </label>
-                  ))
-              )}
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-xl shadow-2xl max-w-lg w-full border border-border overflow-hidden">
+        {/* Header do Modal */}
+        <div className="bg-gradient-to-r from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 px-6 py-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-primary/10 dark:bg-primary/20 rounded-lg flex items-center justify-center">
+          <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
             </div>
-            <div className="flex gap-2 justify-end">
-              <button
-                className="px-4 py-2 rounded bg-secondary hover:bg-secondary/90 text-secondary-foreground"
-                onClick={() => {
-                  setShowModal(false);
-                  setContatosSelecionados([]);
-                }}
-              >
-                Cancelar
-              </button>
-              {tipoEnvio === "mensagem" && (
-                <button
-                  className="px-4 py-2 rounded bg-primary text-primary-foreground font-semibold hover:bg-primary/90 flex items-center gap-2"
-                  disabled={contatosSelecionados.length === 0 || loadingEnviar}
-                  onClick={confirmarEnvioMensagem}
-                >
-                  {loadingEnviar && (
-                    <svg
-                      className="animate-spin h-4 w-4 mr-1"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v8z"
-                      />
-                    </svg>
-                  )}
-                  {loadingEnviar ? "Enviando..." : "Enviar"}
-                </button>
-              )}
-              {tipoEnvio === "pdf" && (
-                <button
-                  className="px-4 py-2 rounded bg-gray-800 text-white font-semibold hover:bg-gray-900 flex items-center gap-2"
-                  disabled={contatosSelecionados.length === 0 || loadingEnviar}
-                  onClick={enviarPDFWhatsApp}
-                >
-                  {loadingEnviar && (
-                    <svg
-                      className="animate-spin h-4 w-4 mr-1"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="white"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="white"
-                        d="M4 12a8 8 0 018-8v8z"
-                      />
-                    </svg>
-                  )}
-                  {loadingEnviar ? "Enviando..." : "Enviar PDF"}
-                </button>
-              )}
+            <div>
+          <h3 className="text-xl font-bold text-foreground">
+            {tipoEnvio === "pdf" ? "Selecionar Contatos para PDF" : "Selecionar Contatos para Mensagem"}
+          </h3>
+          <p className="text-sm text-muted-foreground">
+            {tipoEnvio === "pdf" 
+              ? "Escolha os contatos que receberão o orçamento em PDF via WhatsApp" 
+              : "Escolha os contatos que receberão a mensagem de orçamento via WhatsApp"
+            }
+          </p>
             </div>
           </div>
         </div>
+
+        {/* Conteúdo do Modal */}
+        <div className="p-6 space-y-6">
+          {/* Campo de Busca */}
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+            </div>
+            <input
+          className="w-full pl-10 pr-4 py-3 border border-input rounded-lg bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring transition-all"
+          placeholder="Buscar por nome ou telefone..."
+          value={buscaContato}
+          onChange={(e) => setBuscaContato(e.target.value)}
+          autoFocus
+            />
+          </div>
+
+          {/* Lista de Contatos */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between mb-3">
+          <label className="text-sm font-medium text-foreground">
+            Contatos Disponíveis
+          </label>
+          {contatosSelecionados.length > 0 && (
+            <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
+              {contatosSelecionados.length} selecionado{contatosSelecionados.length > 1 ? 's' : ''}
+            </span>
+          )}
+            </div>
+            
+            <div className="max-h-64 overflow-y-auto space-y-1 border border-border rounded-lg p-2 bg-muted/20">
+          {contatos.length === 0 ? (
+            <div className="text-center py-8">
+              <svg className="w-12 h-12 mx-auto mb-3 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              <p className="text-muted-foreground font-medium">Nenhum contato encontrado</p>
+              <p className="text-muted-foreground/70 text-sm mt-1">Verifique se há contatos cadastrados no sistema</p>
+            </div>
+          ) : (
+            contatos
+              .filter((contato) => {
+            const nome = (contato.nome || "")
+              .normalize("NFD")
+              .replace(/[^\w\s.-]/g, "")
+              .toLowerCase();
+            const busca = (buscaContato || "")
+              .normalize("NFD")
+              .replace(/[^\w\s.-]/g, "")
+              .toLowerCase();
+            const numero = contato.numero || "";
+            const buscaNum = buscaContato.replace(/\D/g, "");
+            return (
+              nome.includes(busca) ||
+              (buscaNum && numero.includes(buscaNum))
+            );
+              })
+              .map((contato) => (
+            <label
+              key={`contato-${contato.numero}-${contato.nome || "sem-nome"}`}
+              className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-accent/50 ${
+                contatosSelecionados.includes(contato.numero)
+              ? 'bg-primary/10 border-2 border-primary/30'
+              : 'bg-background border border-border hover:border-primary/50'
+              }`}
+            >
+              <div className="relative">
+                <input
+              type="checkbox"
+              checked={contatosSelecionados.includes(contato.numero)}
+              onChange={() => handleCheckContato(contato.numero)}
+              className="sr-only"
+                />
+                <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${
+              contatosSelecionados.includes(contato.numero)
+                ? 'bg-primary border-primary'
+                : 'border-muted-foreground hover:border-primary'
+                }`}>
+              {contatosSelecionados.includes(contato.numero) && (
+                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              )}
+                </div>
+              </div>
+              
+              <div className="flex-1 min-w-0">
+                <div className="font-medium text-foreground truncate">
+              {contato.nome || "Sem nome"}
+                </div>
+                <div className="text-sm text-muted-foreground">
+              {contato.numero}
+                </div>
+              </div>
+              
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center">
+                <svg className="w-5 h-5 text-green-600 dark:text-green-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                </svg>
+              </div>
+            </label>
+              ))
+          )}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer do Modal */}
+        <div className="bg-muted/30 px-6 py-4 border-t border-border flex flex-col sm:flex-row gap-3 justify-end">
+          <button
+            className="px-6 py-3 rounded-lg bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium transition-all duration-200 hover:scale-105 border border-border"
+            onClick={() => {
+          setShowModal(false);
+          setContatosSelecionados([]);
+            }}
+          >
+            Cancelar
+          </button>
+          
+          {tipoEnvio === "mensagem" && (
+            <button
+          className="px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          disabled={contatosSelecionados.length === 0 || loadingEnviar}
+          onClick={confirmarEnvioMensagem}
+            >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          {loadingEnviar ? (
+            <>
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+              Enviando Mensagem...
+            </>
+          ) : (
+            `Enviar Mensagem (${contatosSelecionados.length})`
+          )}
+            </button>
+          )}
+          
+          {tipoEnvio === "pdf" && (
+            <button
+          className="px-6 py-3 rounded-lg bg-red-600 hover:bg-red-700 text-white font-semibold transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
+          disabled={contatosSelecionados.length === 0 || loadingEnviar}
+          onClick={enviarPDFWhatsApp}
+            >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          {loadingEnviar ? (
+            <>
+              <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+              </svg>
+              Gerando e Enviando PDF...
+            </>
+          ) : (
+            `Enviar PDF (${contatosSelecionados.length})`
+          )}
+            </button>
+          )}
+
+        </div>
+         
+        </div>
+        </div>
       )}
 
-      {/* Modal para confirmar nome antes do envio */}
+
       {showConfirmaNomeModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="bg-card rounded shadow-lg p-8 max-w-md w-full relative border border-border">
