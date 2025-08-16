@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { OrcamentoPage } from "./page/OrcamentoPage";
-import { ProdutosCrudPage } from "./page/ProdutosCrudPage";
-import { OrcamentosEnviadosPage } from "./page/OrcamentosEnviadosPage";
+import { OrcamentoPage } from "./page/orcamentos/";
+import { ProdutosCrudPage } from "./page/produtos";
+import { OrcamentosEnviadosPage } from "./page/enviados";
 import check from "./check.svg";
 
 import { Routes, Route } from "react-router-dom";
