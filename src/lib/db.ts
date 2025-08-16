@@ -17,4 +17,17 @@ try {
   if (!String(e).includes('duplicate column')) throw e;
 }
 
+// Tabela para armazenar orçamentos enviados/criados
+db.run(`CREATE TABLE IF NOT EXISTS orcamentos_enviados (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  cliente_nome TEXT NOT NULL,
+  cliente_numero TEXT,
+  produtos TEXT NOT NULL,
+  valor_total REAL NOT NULL,
+  tipo_envio TEXT NOT NULL,
+  data_criacao DATETIME DEFAULT CURRENT_TIMESTAMP,
+  data_envio DATETIME,
+  status TEXT DEFAULT 'criado'
+)`);
+
 export default db;

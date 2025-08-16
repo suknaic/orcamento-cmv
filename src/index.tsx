@@ -46,6 +46,34 @@ const server = serve({
         const mod = await import("./api/reconnect-bot.ts");
         return mod.POST();
       },
+    },
+
+    // Rota para orçamentos enviados
+    "/api/orcamentosEnviados": {
+      async GET(req) {
+        const mod = await import("./api/orcamentosEnviados.ts");
+        return mod.default.GET(req);
+      },
+      async POST(req) {
+        const mod = await import("./api/orcamentosEnviados.ts");
+        return mod.default.POST(req);
+      },
+      async PUT(req) {
+        const mod = await import("./api/orcamentosEnviados.ts");
+        return mod.default.PUT(req);
+      },
+      async OPTIONS(req) {
+        const mod = await import("./api/orcamentosEnviados.ts");
+        return mod.default.OPTIONS(req);
+      },
+    },
+
+    // Rota para reenvio de orçamentos
+    "/api/reenviarOrcamento": {
+      async POST(req) {
+        const mod = await import("./api/reenviarOrcamento.ts");
+        return mod.default.POST(req);
+      },
     }
   },
 

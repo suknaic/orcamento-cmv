@@ -18,18 +18,25 @@ const tiposMateriais = {
 
 function calcularOrcamento(material, tipo, preco, largura, altura, quantidade) {
   if (!material || !tipo) return 0;
+  
+  // Normalizar inputs numéricos
+  const precoNum = parseFloat(String(preco).replace(',', '.')) || 0;
+  const larguraNum = parseFloat(String(largura).replace(',', '.')) || 0;
+  const alturaNum = parseFloat(String(altura).replace(',', '.')) || 0;
+  const quantidadeNum = Math.max(1, parseInt(String(quantidade)) || 1);
+  
   if (tipo === "m2") {
-    const area = (Number(largura) * Number(altura)) || 0;
-    return area * preco * (quantidade || 1);
+    const area = larguraNum * alturaNum;
+    return area * precoNum * quantidadeNum;
   }
   if (tipo === "unidade") {
-    return preco * (quantidade || 1);
+    return precoNum * quantidadeNum;
   }
   if (tipo === "milheiro") {
-    return preco * ((quantidade || 0) / 1000);
+    return precoNum * (quantidadeNum / 1000);
   }
   if (tipo === "kit") {
-    return preco * (quantidade || 1);
+    return precoNum * quantidadeNum;
   }
   return 0;
 }
@@ -78,12 +85,20 @@ export function OrcamentoPage() {
   // Calcula desconto (pode ser % ou valor fixo)
   function calcularDesconto(valorTotal: number, desconto: string) {
     if (!desconto) return 0;
-    if (desconto.includes('%')) {
-      const perc = parseFloat(desconto.replace('%', '').replace(',', '.'));
-      if (!isNaN(perc)) return valorTotal * (perc / 100);
+    
+    // Remove espaços e normaliza vírgulas para pontos
+    const descontoLimpo = desconto.trim().replace(',', '.');
+    
+    if (descontoLimpo.includes('%')) {
+      const perc = parseFloat(descontoLimpo.replace('%', ''));
+      if (!isNaN(perc) && isFinite(perc)) {
+        return valorTotal * (perc / 100);
+      }
     } else {
-      const val = parseFloat(desconto.replace(',', '.'));
-      if (!isNaN(val)) return val;
+      const val = parseFloat(descontoLimpo);
+      if (!isNaN(val) && isFinite(val)) {
+        return val;
+      }
     }
     return 0;
   }
@@ -244,7 +259,10 @@ export function OrcamentoPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           numeros: contatosSelecionados,
-          mensagem
+          mensagem,
+          cliente_nome: info.cliente || 'Cliente',
+          produtos: orcamentoData,
+          valor_total: valorTotal
         })
       });
       let data = null;
@@ -295,6 +313,9 @@ export function OrcamentoPage() {
       const formData = new FormData();
       formData.append('pdf', pdfBlob, 'proposta.pdf');
       formData.append('numeros', JSON.stringify(contatosSelecionados));
+      formData.append('cliente_nome', info.cliente || 'Cliente');
+      formData.append('produtos', JSON.stringify(orcamentoData));
+      formData.append('valor_total', valorTotal.toString());
       // Não envia mensagem junto!
       const resp = await fetch('/api/enviarPDF', {
         method: 'POST',
@@ -331,21 +352,32 @@ export function OrcamentoPage() {
 
   return (
     <>
-      <ToastContainer position="top-center" autoClose={3500} hideProgressBar={false} newestOnTop closeOnClick pauseOnFocusLoss draggable pauseOnHover />
-      <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-lg p-4 sm:p-8 mt-4 sm:mt-10 border border-gray-100">
-        <h2 className="text-3xl font-extrabold mb-8 text-blue-800 tracking-tight text-center">Novo Orçamento</h2>
+      <ToastContainer 
+        position="top-center" 
+        autoClose={3500} 
+        hideProgressBar={false} 
+        newestOnTop 
+        closeOnClick 
+        pauseOnFocusLoss 
+        draggable 
+        pauseOnHover
+        theme="auto"
+        className="relative"
+      />
+      <div className="max-w-3xl mx-auto bg-card rounded-xl shadow-lg p-4 sm:p-8 mt-4 sm:mt-10 border border-border">
+        <h2 className="text-3xl font-extrabold mb-8 text-foreground tracking-tight text-center">Novo Orçamento</h2>
         {produtos.map((p, idx) => (
           <div key={p.materialSelecionado ? p.materialSelecionado + '-' + idx : idx} className="mb-2 border-b pb-2 last:border-b-0 last:pb-0">
             <div
               className="grid grid-cols-1 md:grid-cols-[minmax(180px,1.7fr)_minmax(110px,1fr)_minmax(110px,1fr)_minmax(80px,0.8fr)_minmax(110px,1fr)_minmax(60px,0.5fr)] gap-x-2 gap-y-2 items-end"
             >
               <div className="flex flex-col">
-                <label className="block mb-0.5 font-semibold text-md">Produtos  </label>
+                <label className="block mb-0.5 font-semibold text-md text-foreground">Produtos  </label>
                 <div className="relative min-w-[10px]">
                   <input
                     ref={el => { materialRefs.current[idx] = el; }}
                     type="text"
-                    className="border border-blue-200 rounded px-2 py-1 w-full min-w-[160px] max-w-[200px] focus:ring-2 focus:ring-blue-400 focus:border-blue-400 transition outline-none shadow-sm text-sm"
+                    className="border border-border rounded px-2 py-1 w-full min-w-[160px] max-w-[200px] focus:ring-2 focus:ring-ring focus:border-ring transition outline-none shadow-sm text-sm bg-card text-foreground"
                     placeholder="Buscar Produto..."
                     value={p._buscaMaterial || ''}
                     onChange={e => {
@@ -365,19 +397,19 @@ export function OrcamentoPage() {
                   />
                   <button
                     type="button"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-500"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary"
                     tabIndex={-1}
                     onClick={() => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, _showDropdown: !prod._showDropdown } : { ...prod, _showDropdown: false }))}
                   >
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
                   </button>
                   {p._showDropdown && (
-                    <div className="absolute z-20 left-0 right-0 bg-white border border-t-0 rounded-b shadow max-h-56 overflow-y-auto animate-fade-in">
+                    <div className="absolute z-20 left-0 right-0 bg-card border border-t-0 rounded-b shadow max-h-56 overflow-y-auto animate-fade-in">
                       {materiais.filter(mat => {
                         const busca = (p._buscaMaterial || '').toLowerCase();
                         return !busca || mat.nome.toLowerCase().includes(busca);
                       }).length === 0 ? (
-                        <div className="px-3 py-2 text-gray-400 text-sm">Nenhum Produto encontrado</div>
+                        <div className="px-3 py-2 text-muted-foreground text-sm">Nenhum Produto encontrado</div>
                       ) : materiais.filter(mat => {
                         const busca = (p._buscaMaterial || '').toLowerCase();
                         return !busca || mat.nome.toLowerCase().includes(busca);
@@ -385,7 +417,7 @@ export function OrcamentoPage() {
                         <button
                           type="button"
                           key={mat.nome}
-                          className={`w-full text-left px-3 py-2 hover:bg-blue-50 flex items-center gap-2 ${p.materialSelecionado === mat.nome ? 'bg-blue-100 font-semibold' : ''}`}
+                          className={`w-full text-left px-3 py-2 hover:bg-accent flex items-center gap-2 text-foreground ${p.materialSelecionado === mat.nome ? 'bg-accent font-semibold' : ''}`}
                           onClick={() => {
                             setProdutos(produtos => produtos.map((prod, i) => i === idx ? {
                               ...prod,
@@ -400,8 +432,8 @@ export function OrcamentoPage() {
                             } : prod));
                           }}
                         >
-                          <span className="truncate max-w-[240px]">{mat.nome}</span>
-                          {mat.preco ? <span className="ml-auto text-xs text-green-700 font-bold">R$ {Number(mat.preco).toLocaleString("pt-BR", {minimumFractionDigits:2})}</span> : null}
+                          <span className="truncate max-w-[240px]" title={mat.nome}>{mat.nome}</span>
+                          {mat.preco ? <span className="ml-auto text-xs text-green-600 font-bold">R$ {Number(mat.preco).toLocaleString("pt-BR", {minimumFractionDigits:2})}</span> : null}
                         </button>
                       ))}
                     </div>
@@ -411,12 +443,12 @@ export function OrcamentoPage() {
               </div>
               {p.tipo && tiposMateriais[p.tipo]?.campos.includes("largura") ? (
                 <div className="flex flex-col min-w-0">
-                  <label className="block mb-0.5 text-xs">Largura (m)</label>
+                  <label className="block mb-0.5 text-xs text-muted-foreground">Largura (m)</label>
                   <input
                     type="number"
                     min={0}
                     step={0.01}
-                    className="border rounded px-2 py-1 min-w-[80px] max-w-[120px] text-sm"
+                    className="border rounded px-2 py-1 min-w-[80px] max-w-[120px] text-sm bg-card text-foreground border-border"
                     value={p.largura}
                     onChange={e => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, largura: e.target.value } : prod))}
                   />
@@ -424,12 +456,12 @@ export function OrcamentoPage() {
               ) : <div />}
               {p.tipo && tiposMateriais[p.tipo]?.campos.includes("altura") ? (
                 <div className="flex flex-col min-w-0">
-                  <label className="block mb-0.5 text-xs">Altura (m)</label>
+                  <label className="block mb-0.5 text-xs text-muted-foreground">Altura (m)</label>
                   <input
                     type="number"
                     min={0}
                     step={0.01}
-                    className="border rounded px-2 py-1 min-w-[80px] max-w-[120px] text-sm"
+                    className="border rounded px-2 py-1 min-w-[80px] max-w-[120px] text-sm bg-card text-foreground border-border"
                     value={p.altura}
                     onChange={e => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, altura: e.target.value } : prod))}
                   />
@@ -437,12 +469,12 @@ export function OrcamentoPage() {
               ) : <div />}
               {p.tipo && tiposMateriais[p.tipo]?.campos.includes("quantidade") ? (
                 <div className="flex flex-col min-w-0">
-                  <label className="block mb-0.5 text-xs">Qtd</label>
+                  <label className="block mb-0.5 text-xs text-muted-foreground">Qtd</label>
                   <input
                     type="number"
                     min={1}
                     step={1}
-                    className="border rounded px-2 py-1 min-w-[60px] max-w-[80px] text-sm"
+                    className="border rounded px-2 py-1 min-w-[60px] max-w-[80px] text-sm bg-card text-foreground border-border"
                     value={p.quantidade}
                     onChange={e => setProdutos(produtos => produtos.map((prod, i) => i === idx ? { ...prod, quantidade: Number(e.target.value) } : prod))}
                   />
@@ -450,8 +482,8 @@ export function OrcamentoPage() {
               ) : <div />}
               <div className="flex flex-row ml-auto min-w-0 align-middle items-end justify-end h-full">
                 <div className="flex flex-col">
-                    <label className="block mb-0.5 text-xs">Subtotal</label>
-                  <span className="text-green-700 font-extrabold text-xl whitespace-nowrap">R${p.valor.toLocaleString("pt-BR", {minimumFractionDigits:2})}</span>
+                    <label className="block mb-0.5 text-xs text-muted-foreground">Subtotal</label>
+                  <span className="text-green-600 font-extrabold text-xl whitespace-nowrap">R${p.valor.toLocaleString("pt-BR", {minimumFractionDigits:2})}</span>
                 </div>
                 {produtos.length > 1 && (
                   <button
@@ -471,7 +503,7 @@ export function OrcamentoPage() {
         ))}
         <button
           type="button"
-          className="mb-4 px-4 py-2 rounded bg-gradient-to-r from-blue-500 to-blue-700 hover:from-blue-600 hover:to-blue-800 text-white font-bold shadow-md w-full sm:w-auto"
+          className="mb-4 px-4 py-2 rounded bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-md w-full sm:w-auto"
           onClick={() => {
             setProdutos(produtos => {
               const novos = [...produtos, { materialSelecionado: null, tipo: '', preco: 0, largura: '', altura: '', quantidade: 1, valor: 0, _showDropdown: true }];
@@ -487,12 +519,12 @@ export function OrcamentoPage() {
           + Adicionar produto
         </button>
         <div className="mb-4 mt-4">
-          <span className="font-semibold">Valor total: </span>
-          <span className="text-lg text-green-700 font-bold">R${valorTotal.toLocaleString("pt-BR", {minimumFractionDigits:2})}</span>
+          <span className="font-semibold text-foreground">Valor total: </span>
+          <span className="text-lg text-green-600 font-bold">R${valorTotal.toLocaleString("pt-BR", {minimumFractionDigits:2})}</span>
         </div>
         <div className="mb-4">
           <textarea
-            className="border rounded px-2 py-1 w-full text-sm"
+            className="border rounded px-2 py-1 w-full text-sm bg-card text-foreground border-border"
             rows={4}
             value={mensagem}
             readOnly
@@ -502,20 +534,20 @@ export function OrcamentoPage() {
           <AnimatedSubscribeButton
             subscribeStatus={copiado}
             onClick={copiar}
-            className="bg-indigo-600 hover:bg-indigo-800 px-4 py-2 rounded font-semibold"
+            className="bg-black hover:bg-gray-800 px-4 py-2 rounded font-semibold"
           >
             <span>Copiar orçamento</span>
             <span>Mensagem copiada!</span>
           </AnimatedSubscribeButton>
           <button
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-semibold"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded font-semibold"
             type="button"
             onClick={enviarWhatsApp}
           >
             Enviar para WhatsApp
           </button>
           <button
-            className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded font-semibold"
+            className="bg-secondary hover:bg-secondary/90 text-secondary-foreground px-4 py-2 rounded font-semibold"
             type="button"
             onClick={() => setShowInfoModal('pdf')}
           >
@@ -525,40 +557,40 @@ export function OrcamentoPage() {
         {/* Modal de informações extras */}
         {showInfoModal === 'pdf' && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-white rounded shadow-lg p-8 max-w-md w-full relative">
-              <h3 className="text-xl font-bold mb-4">Informações extras</h3>
+            <div className="bg-card rounded shadow-lg p-8 max-w-md w-full relative border border-border">
+              <h3 className="text-xl font-bold mb-4 text-foreground">Informações extras</h3>
               <div className="flex flex-col gap-3">
-                <label>
+                <label className="text-foreground">
                   Cliente:
                   <input
-                    className="border rounded px-2 py-1 w-full mt-1"
+                    className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
                     name="cliente"
                     value={info.cliente}
                     onChange={e => setInfo({ ...info, cliente: e.target.value })}
                   />
                 </label>
-                <label>
+                <label className="text-foreground">
                   Validade da proposta:
                   <input
-                    className="border rounded px-2 py-1 w-full mt-1"
+                    className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
                     name="validade"
                     value={info.validade}
                     onChange={e => setInfo({ ...info, validade: e.target.value })}
                   />
                 </label>
-                <label>
+                <label className="text-foreground">
                   Entrada:
                   <input
-                    className="border rounded px-2 py-1 w-full mt-1"
+                    className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
                     name="desconto"
                     value={info.desconto}
                     onChange={e => setInfo({ ...info, desconto: e.target.value })}
                   />
                 </label>
-                <label>
+                <label className="text-foreground">
                   Forma de pagamento:
                   <input
-                    className="border rounded px-2 py-1 w-full mt-1"
+                    className="border rounded px-2 py-1 w-full mt-1 bg-card text-foreground border-border"
                     name="pagamento"
                     value={info.pagamento}
                     onChange={e => setInfo({ ...info, pagamento: e.target.value })}
@@ -567,13 +599,13 @@ export function OrcamentoPage() {
               </div>
               <div className="flex gap-2 justify-end mt-6">
                 <button
-                  className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
+                  className="px-4 py-2 rounded bg-secondary hover:bg-secondary/90 text-secondary-foreground"
                   onClick={() => setShowInfoModal(false)}
                 >
                   Cancelar
                 </button>
                 <button
-                  className="px-4 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-700"
+                  className="px-4 py-2 rounded bg-primary text-primary-foreground font-semibold hover:bg-primary/90"
                   onClick={async () => {
                     setShowInfoModal(false);
                     // Após preencher info extra, abrir modal de contatos para envio de mensagem texto
@@ -590,7 +622,7 @@ export function OrcamentoPage() {
                   Enviar WhatsApp
                 </button>
                 <button
-                  className="px-4 py-2 rounded bg-purple-600 text-white font-semibold hover:bg-purple-700"
+                  className="px-4 py-2 rounded bg-black text-white font-semibold hover:bg-gray-800"
                   onClick={async () => {
                     if (!propostaRef.current) return toast.error('Erro ao gerar PDF: componente não encontrado');
                     const node = propostaRef.current;
@@ -642,10 +674,10 @@ export function OrcamentoPage() {
       {/* Modal de seleção de contatos */}
       {showModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-white rounded shadow-lg p-8 max-w-md w-full relative">
-            <h3 className="text-xl font-bold mb-4">Selecione os contatos para envio</h3>
+          <div className="bg-card rounded shadow-lg p-8 max-w-md w-full relative border border-border">
+            <h3 className="text-xl font-bold mb-4 text-foreground">Selecione os contatos para envio</h3>
             <input
-              className="border rounded px-2 py-1 w-full mb-4"
+              className="border rounded px-2 py-1 w-full mb-4 bg-card text-foreground border-border"
               placeholder="Buscar por nome ou telefone..."
               value={buscaContato}
               onChange={e => setBuscaContato(e.target.value)}
@@ -653,7 +685,7 @@ export function OrcamentoPage() {
             />
             <div className="flex flex-col gap-2 mb-4 max-h-60 overflow-y-auto">
               {contatos.length === 0 ? (
-                <span className="text-gray-500">Nenhum contato encontrado.</span>
+                <span className="text-muted-foreground">Nenhum contato encontrado.</span>
               ) : contatos
                 .filter(contato => {
                   const nome = (contato.nome || "").normalize("NFD").replace(/[^\w\s.-]/g, "").toLowerCase();
@@ -666,19 +698,19 @@ export function OrcamentoPage() {
                   );
                 })
                 .map(contato => (
-                  <label key={contato.numero} className="flex items-center gap-2 cursor-pointer">
+                  <label key={contato.numero} className="flex items-center gap-2 cursor-pointer text-foreground">
                     <input
                       type="checkbox"
                       checked={contatosSelecionados.includes(contato.numero)}
                       onChange={() => handleCheckContato(contato.numero)}
                     />
-                    <span>{contato.nome} <span className="text-xs text-gray-500">({contato.numero})</span></span>
+                    <span>{contato.nome} <span className="text-xs text-muted-foreground">({contato.numero})</span></span>
                   </label>
                 ))}
             </div>
             <div className="flex gap-2 justify-end">
               <button
-                className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300"
+                className="px-4 py-2 rounded bg-secondary hover:bg-secondary/90 text-secondary-foreground"
                 onClick={() => {
                   setShowModal(false);
                   setContatosSelecionados([]);
@@ -687,20 +719,20 @@ export function OrcamentoPage() {
                 Cancelar
               </button>
               <button
-                className="px-4 py-2 rounded bg-green-600 text-white font-semibold hover:bg-green-700 flex items-center gap-2"
+                className="px-4 py-2 rounded bg-primary text-primary-foreground font-semibold hover:bg-primary/90 flex items-center gap-2"
                 disabled={contatosSelecionados.length === 0 || loadingEnviar}
                 onClick={enviarMensagemWhatsApp}
               >
                 {loadingEnviar && (
                   <svg className="animate-spin h-4 w-4 mr-1" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="white" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="white" d="M4 12a8 8 0 018-8v8z" />
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
                   </svg>
                 )}
                 {loadingEnviar ? "Enviando..." : "Enviar"}
               </button>
               <button
-                className="px-4 py-2 rounded bg-purple-600 text-white font-semibold hover:bg-purple-700 flex items-center gap-2"
+                className="px-4 py-2 rounded bg-gray-800 text-white font-semibold hover:bg-gray-900 flex items-center gap-2"
                 disabled={contatosSelecionados.length === 0 || loadingEnviar}
                 onClick={enviarPDFWhatsApp}
               >

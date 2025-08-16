@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { OrcamentoPage } from "./page/OrcamentoPage";
 import { ProdutosCrudPage } from "./page/ProdutosCrudPage";
+import { OrcamentosEnviadosPage } from "./page/OrcamentosEnviadosPage";
 import check from "./check.svg";
 
 import { Routes, Route } from "react-router-dom";
@@ -122,12 +123,13 @@ export function App() {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background text-foreground">
       <Navbar onWhatsClick={() => setShowWhatsModal(true)} />
-      <div className="pt-20">
+      <div className="pt-20 bg-background">
         <Routes>
           <Route path="/" element={<OrcamentoPage />} />
           <Route path="/produtos" element={<ProdutosCrudPage />} />
+          <Route path="/orcamentos" element={<OrcamentosEnviadosPage />} />
         </Routes>
         {/* Modal WhatsApp */}
         <WhatsModal
