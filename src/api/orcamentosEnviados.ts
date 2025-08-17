@@ -10,11 +10,7 @@ export default {
     const status = url.searchParams.get('status') || '';
     const sortBy = url.searchParams.get('sortBy') || 'data_criacao';
     const sortOrder = url.searchParams.get('sortOrder') || 'DESC';
-    
-    console.log('API Request params:', {
-      page, limit, search, status, sortBy, sortOrder
-    });
-    
+   
     const offset = (page - 1) * limit;
     
     // Query base - construir condições WHERE

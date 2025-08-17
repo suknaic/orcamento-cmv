@@ -153,15 +153,6 @@ export function EnviadosProvider({ children }: { children: React.ReactNode }) {
         params.append('status', filterStatus);
       }
       
-      console.log('Fetching orcamentos with params:', {
-        page,
-        limit: itemsPerPage,
-        search: searchTerm,
-        status: filterStatus,
-        sortBy,
-        sortOrder
-      });
-      
       const response = await fetch(`/api/orcamentosEnviados?${params}`);
       const data = await response.json();
       
