@@ -18,7 +18,7 @@ export function SearchAndFilters() {
 
   return (
     <div className="mb-6">
-      <div className="bg-gray-50 dark:bg-accent/50 rounded-xl p-6 border border-gray-200 dark:border-border">
+      <div className="bg-accent/30 rounded-xl p-6 border border-border">
         <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">
@@ -26,7 +26,7 @@ export function SearchAndFilters() {
                 {searchTimeout ? (
                   <div className="animate-spin h-4 w-4 border-2 border-primary border-t-transparent rounded-full"></div>
                 ) : (
-                  <svg className="h-5 w-5 text-gray-400 dark:text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-5 w-5 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                   </svg>
                 )}
@@ -36,7 +36,7 @@ export function SearchAndFilters() {
                 placeholder="Digite para buscar em tempo real: cliente, telefone, produtos..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="block w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-border rounded-lg bg-white dark:bg-card text-gray-900 dark:text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+                className="block w-full pl-10 pr-4 py-3 border border-input rounded-lg bg-background text-foreground focus:ring-2 focus:ring-primary focus:border-primary transition-colors placeholder:text-muted-foreground"
               />
               {search && (
                 <button
@@ -44,7 +44,7 @@ export function SearchAndFilters() {
                   onClick={() => setSearch('')}
                   className="absolute inset-y-0 right-0 pr-3 flex items-center"
                 >
-                  <svg className="h-4 w-4 text-gray-400 dark:text-muted-foreground hover:text-gray-600 dark:hover:text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-4 w-4 text-muted-foreground hover:text-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
@@ -54,7 +54,7 @@ export function SearchAndFilters() {
           <button
             type="button"
             onClick={clearAllFilters}
-            className="bg-gray-100 dark:bg-secondary hover:bg-gray-200 dark:hover:bg-secondary/90 text-gray-700 dark:text-secondary-foreground px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
+            className="bg-secondary hover:bg-secondary/80 text-secondary-foreground px-6 py-3 rounded-lg font-medium transition-colors flex items-center gap-2"
             disabled={!search && !activeFilter}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -66,13 +66,13 @@ export function SearchAndFilters() {
         
         {/* Filtros rápidos funcionais */}
         <div className="mt-4 flex flex-wrap gap-2">
-          <span className="text-sm font-medium text-gray-600 dark:text-muted-foreground">Filtros rápidos:</span>
+          <span className="text-sm font-medium text-muted-foreground">Filtros rápidos:</span>
           <button 
             onClick={() => handleQuickFilter('enviado')}
             className={`px-3 py-1 text-xs rounded-full hover:scale-105 transition-all ${
               activeFilter === 'enviado' 
-                ? 'bg-green-500 dark:bg-green-600 text-white shadow-md' 
-                : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 hover:bg-green-200 dark:hover:bg-green-900/50'
+                ? 'bg-green-600 text-white shadow-md' 
+                : 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200 dark:hover:bg-green-900/50'
             }`}
           >
             {activeFilter === 'enviado' && '✓ '}Enviados
@@ -81,8 +81,8 @@ export function SearchAndFilters() {
             onClick={() => handleQuickFilter('reenviado')}
             className={`px-3 py-1 text-xs rounded-full hover:scale-105 transition-all ${
               activeFilter === 'reenviado' 
-                ? 'bg-blue-500 dark:bg-blue-600 text-white shadow-md' 
-                : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50'
+                ? 'bg-blue-600 text-white shadow-md' 
+                : 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-900/50'
             }`}
           >
             {activeFilter === 'reenviado' && '✓ '}Reenviados
@@ -91,8 +91,8 @@ export function SearchAndFilters() {
             onClick={() => handleQuickFilter('erro_envio')}
             className={`px-3 py-1 text-xs rounded-full hover:scale-105 transition-all ${
               activeFilter === 'erro_envio' 
-                ? 'bg-red-500 dark:bg-red-600 text-white shadow-md' 
-                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
+                ? 'bg-red-600 text-white shadow-md' 
+                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 hover:bg-red-200 dark:hover:bg-red-900/50'
             }`}
           >
             {activeFilter === 'erro_envio' && '✓ '}Com Erro
@@ -101,8 +101,8 @@ export function SearchAndFilters() {
             onClick={() => handleQuickFilter('enviando')}
             className={`px-3 py-1 text-xs rounded-full hover:scale-105 transition-all ${
               activeFilter === 'enviando' 
-                ? 'bg-amber-500 dark:bg-amber-600 text-white shadow-md' 
-                : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50'
+                ? 'bg-amber-600 text-white shadow-md' 
+                : 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 hover:bg-amber-200 dark:hover:bg-amber-900/50'
             }`}
           >
             {activeFilter === 'enviando' && '✓ '}Enviando

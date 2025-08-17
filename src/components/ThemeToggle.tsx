@@ -6,18 +6,14 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className={`relative inline-flex items-center justify-center p-2.5 rounded-lg transition-all duration-200 border ${
-        isDark 
-          ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700/50 hover:bg-amber-100 dark:hover:bg-amber-900/30' 
-          : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700'
-      }`}
+      className="relative inline-flex items-center justify-center p-2.5 rounded-lg transition-all duration-200 border border-border bg-background hover:bg-muted text-foreground"
       title={isDark ? "Mudar para tema claro" : "Mudar para tema escuro"}
     >
       {isDark ? (
         // Ícone do sol para tema escuro (ativo)
         <div className="flex items-center gap-1">
           <svg
-            className="w-4 h-4 text-amber-600 dark:text-amber-400"
+            className="w-4 h-4 text-primary"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
@@ -27,26 +23,24 @@ export function ThemeToggle() {
               clipRule="evenodd"
             />
           </svg>
-          <span className="text-xs font-medium text-amber-700 dark:text-amber-300 hidden sm:block">Claro</span>
+          <span className="text-xs font-medium text-muted-foreground hidden sm:block">Claro</span>
         </div>
       ) : (
         // Ícone da lua para tema claro (ativo)
         <div className="flex items-center gap-1">
           <svg
-            className="w-4 h-4 text-slate-600 dark:text-slate-400"
+            className="w-4 h-4 text-primary"
             fill="currentColor"
             viewBox="0 0 20 20"
           >
             <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z" />
           </svg>
-          <span className="text-xs font-medium text-slate-700 dark:text-slate-300 hidden sm:block">Escuro</span>
+          <span className="text-xs font-medium text-muted-foreground hidden sm:block">Escuro</span>
         </div>
       )}
       
       {/* Indicador de estado */}
-      <div className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ${
-        isDark ? 'bg-amber-400' : 'bg-slate-400'
-      }`} />
+      <div className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-primary" />
     </button>
   );
 }

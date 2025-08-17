@@ -8,6 +8,7 @@ import { Routes, Route } from "react-router-dom";
 
 import { WhatsModal } from "./components/WhatsModal";
 import { Navbar } from "./components/Navbar";
+import { Sidebar } from "./components/Sidebar";
 
 
 export function App() {
@@ -125,7 +126,8 @@ export function App() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <Navbar onWhatsClick={() => setShowWhatsModal(true)} />
-      <div className="pt-20 bg-background">
+      <Sidebar />
+      <div className="pt-20 pl-64 bg-background">
         <Routes>
           <Route path="/" element={<OrcamentoPage />} />
           <Route path="/produtos" element={<ProdutosCrudPage />} />

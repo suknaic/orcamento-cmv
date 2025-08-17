@@ -330,7 +330,7 @@ export function OrcamentosTable() {
                       Total de {orc.produtos.length} produto{orc.produtos.length !== 1 ? 's' : ''}
                     </span>
                     <div className="text-right">
-                      <div className="text-xl font-bold text-green-700 dark:text-green-400">
+                      <div className="text-xl font-bold text-primary">
                         R$ {orc.valor_total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                       </div>
                       <div className="text-sm text-muted-foreground">Valor Total</div>
