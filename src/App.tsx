@@ -12,6 +12,7 @@ import { Sidebar } from "./components/Sidebar";
 
 
 export function App() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   // Estado para QRCode, status e modal do WhatsApp
   const [qr, setQr] = useState<string | null>(null);
   const [whatsConnected, setWhatsConnected] = useState(false);
@@ -125,23 +126,28 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Navbar onWhatsClick={() => setShowWhatsModal(true)} />
-      <Sidebar />
-      <div className="pt-20 pl-64 bg-background">
-        <Routes>
-          <Route path="/" element={<OrcamentoPage />} />
-          <Route path="/produtos" element={<ProdutosCrudPage />} />
-          <Route path="/orcamentos" element={<OrcamentosEnviadosPage />} />
-        </Routes>
-        {/* Modal WhatsApp */}
-        <WhatsModal
-          show={showWhatsModal}
-          onClose={() => setShowWhatsModal(false)}
-          whatsConnected={whatsConnected}
-          qr={qr}
-          message={message}
-          onReconnect={handleReconnect}
+      <Sidebar isOpen={sidebarOpen} onToggle={setSidebarOpen} />
+      <div className="lg:pl-64 transition-all duration-300">
+        <Navbar 
+          onWhatsClick={() => setShowWhatsModal(true)} 
+          onSidebarToggle={() => setSidebarOpen(true)}
         />
+        <div className="pt-20 bg-background">
+          <Routes>
+            <Route path="/" element={<OrcamentoPage />} />
+            <Route path="/produtos" element={<ProdutosCrudPage />} />
+            <Route path="/orcamentos" element={<OrcamentosEnviadosPage />} />
+          </Routes>
+          {/* Modal WhatsApp */}
+          <WhatsModal
+            show={showWhatsModal}
+            onClose={() => setShowWhatsModal(false)}
+            whatsConnected={whatsConnected}
+            qr={qr}
+            message={message}
+            onReconnect={handleReconnect}
+          />
+        </div>
       </div>
     </div>
   );

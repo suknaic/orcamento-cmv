@@ -34,7 +34,7 @@ function OrcamentoPageContent() {
         theme="auto"
         className="relative"
       />
-      <div className="max-w-6xl mx-auto space-y-6 mt-4 sm:mt-10">
+      <div className="max-w-6xl mx-auto space-y-6 p-4 sm:p-6">
         {/* Header */}
         <div className="bg-card rounded-xl shadow-lg p-6 border border-border">
           <div className="text-center">

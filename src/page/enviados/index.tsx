@@ -12,7 +12,7 @@ function EnviadosPageContent() {
   return (
     <>
       <ToastContainer position="top-center" autoClose={3500} hideProgressBar={false} theme="auto" />
-      <div className="max-w-7xl mx-auto p-4 sm:p-6 bg-card rounded-xl shadow-lg mt-4 border border-border">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 bg-card rounded-xl shadow-lg border border-border">
         <PageHeader />
         <SearchAndFilters />
         <OrcamentosTable />
