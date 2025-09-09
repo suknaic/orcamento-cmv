@@ -5,6 +5,7 @@ import { CancelButton, SendButton, Button } from '@/components/ui/button-variant
 import { toast } from 'react-toastify';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { PropostaComercial } from '@/components/proposta';
 
 export function InfoModal() {
   const {
@@ -54,27 +55,98 @@ export function InfoModal() {
           <Button
             variant="secondary"
             onClick={async () => {
-              if (!propostaRef.current)
-                return toast.error("Erro ao gerar PDF: componente não encontrado");
-              
-              const node = propostaRef.current;
-              const prevBorder = node.style.border;
-              const prevBoxShadow = node.style.boxShadow;
-              node.style.border = "none";
-              node.style.boxShadow = "none";
-              node.style.outline = "none";
-              
               try {
-                const canvas = await html2canvas(node, {
-                  backgroundColor: "#fff",
-                  scale: 1.5,
-                  useCORS: true,
-                  logging: false,
-                  width: node.scrollWidth,
-                  height: node.scrollHeight,
+                if (!propostaRef.current) {
+                  toast.error("Erro ao gerar PDF: componente não encontrado");
+                  return;
+                }
+
+                // Cria um elemento temporário para renderizar o componente PropostaComercial
+                const tempDiv = document.createElement('div');
+                tempDiv.style.position = 'absolute';
+                tempDiv.style.left = '-9999px';
+                tempDiv.style.top = '0';
+                document.body.appendChild(tempDiv);
+
+                // Configura o estilo do div temporário
+                Object.assign(tempDiv.style, {
+                  width: '800px',
+                  background: '#fff',
+                  border: 'none',
+                  boxShadow: 'none',
+                  outline: 'none'
                 });
 
-                const imgData = canvas.toDataURL("image/jpeg", 0.8);
+                // Renderiza o componente PropostaComercial no div temporário
+                const descontoAplicado = info.desconto ? parseFloat(info.desconto.replace(/[^0-9,.]/g, '').replace(',', '.')) : 0;
+                
+                // Usa ReactDOM para renderizar o componente no div temporário
+                const ReactDOM = await import('react-dom/client');
+                const root = ReactDOM.createRoot(tempDiv);
+                
+                // Renderiza o componente
+                root.render(
+                  <PropostaComercial
+                    cliente={info.cliente || "Cliente"}
+                    validade={info.validade || "7 dias"}
+                    desconto={descontoAplicado}
+                    pagamento={info.pagamento || "À vista"}
+                    orcamento={orcamentoData}
+                    total={valorTotal}
+                  />
+                );
+
+                // Aguarda um momento para garantir que o componente seja renderizado
+                await new Promise(resolve => setTimeout(resolve, 500));
+
+                // Aguardar carregamento de imagens
+                const images = tempDiv.querySelectorAll('img');
+                if (images.length > 0) {
+                  console.log(`Encontradas ${images.length} imagens para carregar`);
+                  await Promise.all(
+                    Array.from(images).map((img: HTMLImageElement) => {
+                      return new Promise((resolve) => {
+                        if (img.complete) {
+                          console.log("Imagem já carregada:", img.src);
+                          resolve(null);
+                        } else {
+                          console.log("Aguardando carregamento da imagem:", img.src);
+                          img.onload = () => {
+                            console.log("Imagem carregada com sucesso:", img.src);
+                            resolve(null);
+                          };
+                          img.onerror = (e) => {
+                            console.error("Erro ao carregar imagem:", img.src, e);
+                            resolve(null);
+                          };
+                        }
+                      });
+                    })
+                  );
+                  
+                  // Aguarda um pouco mais após o carregamento das imagens
+                  await new Promise(resolve => setTimeout(resolve, 300));
+                }
+
+                // Captura o componente com html2canvas
+                const canvas = await html2canvas(tempDiv, {
+                  backgroundColor: "#fff",
+                  scale: 2,
+                  useCORS: true,
+                  allowTaint: true,
+                  logging: true,
+                  imageTimeout: 5000,
+                  width: tempDiv.scrollWidth,
+                  height: tempDiv.scrollHeight,
+                  onclone: (clonedDoc) => {
+                    // Verifica se as imagens foram clonadas corretamente
+                    const clonedImages = clonedDoc.querySelectorAll('img');
+                    console.log(`Imagens clonadas: ${clonedImages.length}`);
+                  }
+                });
+
+                // Gera o PDF
+                const imgData = canvas.toDataURL("image/jpeg", 0.95);
                 const pdf = new jsPDF("p", "mm", "a4");
                 const imgWidth = 210;
                 const pageHeight = 297;
@@ -94,13 +166,12 @@ export function InfoModal() {
 
                 pdf.save(`Orcamento_${info.cliente || "Cliente"}.pdf`);
 
-                node.style.border = prevBorder;
-                node.style.boxShadow = prevBoxShadow;
+                // Remove o div temporário
+                document.body.removeChild(tempDiv);
+                root.unmount();
 
                 toast.success("PDF salvo com sucesso!");
               } catch (error) {
-                node.style.border = prevBorder;
-                node.style.boxShadow = prevBoxShadow;
                 console.error("Erro ao gerar PDF:", error);
                 toast.error("Erro ao gerar PDF: " + error);
               }
@@ -214,7 +285,7 @@ export function InfoModal() {
             )}
             <div className="flex justify-between items-center pt-2 border-t border-accent/30">
               <span className="text-muted-foreground">Total de itens:</span>
-              <span className="font-semibold text-foreground">{produtos.filter(p => p.materialSelecionado).length}</span>
+              <span className="font-semibold text-foreground">{produtos.filter(p => p.produto.nome && p.quantidadeTotal > 0).length}</span>
             </div>
           </div>
         </div>

@@ -17,8 +17,13 @@ function OrcamentoPageContent() {
     propostaRef,
     info,
     orcamentoData,
-    valorTotal
+    valorTotal,
+    calcularDesconto
   } = useOrcamentoContext();
+
+  // Calcular desconto para a proposta
+  const valorBruto = produtos.reduce((acc, p) => acc + p.precoTotal, 0);
+  const descontoAplicado = calcularDesconto(valorBruto, info.desconto);
 
   return (
     <>
@@ -108,7 +113,7 @@ function OrcamentoPageContent() {
           <div className="p-6 space-y-4">
             {produtos.map((_, idx) => (
               <ProductSelector
-                key={`produto-${idx}-${produtos[idx].materialSelecionado || "empty"}`}
+                key={`produto-${idx}-${produtos[idx].produto.nome || "empty"}`}
                 produtoIndex={idx}
               />
             ))}
@@ -211,7 +216,7 @@ function OrcamentoPageContent() {
             <PropostaComercial
               cliente={info.cliente || "Cliente"}
               validade={info.validade || "7 dias"}
-              desconto={Number(info.desconto)}
+              desconto={descontoAplicado}
               pagamento={info.pagamento || "À vista"}
               orcamento={orcamentoData}
               total={valorTotal}

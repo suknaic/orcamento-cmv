@@ -1,4 +1,5 @@
-import Header from '../topo-proposta.png';
+// @ts-ignore - Ignore o erro de tipagem para importação de assets
+import HeaderImg from '../assets/topo-proposta.png';
 
 interface PropostaComercialProps {
   cliente?: string;
@@ -33,6 +34,15 @@ const PropostaComercial = ({
   const rodape = 'CNPJ: 52.548.924/0001-20 | JULIO DESIGNER | travessa da vitória, Nº 165 | bairro: Montanhês | Cep: 69.921-554 | WhatsApp: (68) 99976-0124';
   // Telefone do WhatsApp (será preenchido pelo backend, mas pode ser fixo aqui)
   const whatsapp = '(68) 99976-0124';
+  
+  // Data atual formatada
+  const dataAtual = new Date().toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric'
+  });
+  
+  
   return (
     <div style={{
       maxWidth: '48rem',
@@ -40,14 +50,16 @@ const PropostaComercial = ({
       padding: '1.5rem',
       color: '#222',
       background: '#fff',
-      fontFamily: 'sans-serif',
+      fontFamily: 'Arial, sans-serif',
       fontSize: '1rem',
       borderRadius: '8px',
       boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
     }}>
       {/* Header da proposta */}
       <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
-        <img src={Header} alt="Header Proposta" style={{ width: '100%', objectFit: 'contain' }} />
+          <img src={HeaderImg} alt="Header Proposta"
+            style={{ width: '100%', objectFit: 'contain'}}
+          />
       </div>
 
       <div style={{ marginBottom: '1rem' }}>
@@ -58,7 +70,7 @@ const PropostaComercial = ({
         <p><strong>Validade da proposta:</strong> {validade}</p>
         <p><strong>Prazo de entrega:</strong> 2 dias</p>
         <p><strong>Pagamento:</strong> {pagamento}</p>
-        {desconto && <p><strong>Entrada:</strong> R$ {desconto.toLocaleString("pt-BR", {minimumFractionDigits:2})}</p>}
+        {desconto > 0 && <p><strong>Entrada:</strong> R$ {desconto.toLocaleString("pt-BR", {minimumFractionDigits:2})}</p>}
       </div>
 
       <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '1rem', background: '#fff' }}>
@@ -72,15 +84,52 @@ const PropostaComercial = ({
           </tr>
         </thead>
         <tbody>
-          {orcamento.map((item, idx) => (
-            <tr key={idx}>
-              <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }}>{String(idx + 1).padStart(2, '0')}</td>
-              <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }}>{item.descricao}</td>
-              <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }}>{item.quantidade}</td>
-              <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }}>R$ {item.valorUnitario.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
-              <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }}>R$ {item.total.toLocaleString('pt-BR', {minimumFractionDigits:2})}</td>
-            </tr>
-          ))}
+          {orcamento.map((item, idx) => {
+            // Verifica se a descrição contém medidas específicas (m²)
+            const temMedidas = item.descricao.toLowerCase().includes('m²') || 
+                              item.descricao.toLowerCase().includes('m2') ||
+                              (item.descricao.includes('(') && item.descricao.includes('x') && item.descricao.includes('m)'));
+            
+            let descricaoBase = item.descricao;
+            let medidasList: string[] = [];
+            
+            // Extrai as medidas se estiverem no formato original (1x2m, 3x4m)
+            if (temMedidas && item.descricao.includes('(')) {
+              const partes = item.descricao.split('(');
+              descricaoBase = partes[0].trim();
+              
+              // Extrai as medidas entre parênteses
+              const medidasStr = item.descricao.match(/\(([^)]+)\)/);
+              if (medidasStr && medidasStr[1]) {
+                // Divide as medidas se houver várias separadas por vírgulas
+                const medidasArray = medidasStr[1].split(',').map(m => m.trim());
+                
+                // Formata cada medida para o formato de lista
+                medidasList = medidasArray.map((medida, i) => `Medida ${i+1}: ${medida}`);
+              }
+            }
+            
+            return (
+              <tr key={idx}>
+                <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }}>{String(idx + 1).padStart(2, '0')}</td>
+                <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }}>
+                  {descricaoBase}
+                  {medidasList.length > 0 && (
+                    <ul style={{ marginTop: '0.5rem', marginBottom: 0, paddingLeft: '1.5rem' }}>
+                      {medidasList.map((medida, midx) => (
+                        <li key={midx} style={{ fontSize: '0.9rem' }}>
+                          {medida}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </td>
+                <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }}>1</td>
+                <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }}>R$ {typeof item.valorUnitario === 'number' ? item.valorUnitario.toLocaleString('pt-BR', {minimumFractionDigits:2}) : item.valorUnitario}</td>
+                <td style={{ border: '1px solid #d1d5db', padding: '0.5rem' }}>R$ {typeof item.total === 'number' ? item.total.toLocaleString('pt-BR', {minimumFractionDigits:2}) : item.total}</td>
+              </tr>
+            );
+          })}
         </tbody>
         <tfoot>
           <tr style={{ background: '#f9fafb' }}>
@@ -93,7 +142,7 @@ const PropostaComercial = ({
       <div style={{ marginBottom: '1rem' }}>
         <p style={{ fontStyle: 'italic' }}>Autorizo a confecção deste material por cujo conteúdo me responsabilizo, ciente.</p>
         <p>Júlio Eduardo - Designer Gráfico</p>
-        <p>📍 Rio Branco - AC | 17 de Agosto de 2025</p>
+        <p>📍 Rio Branco - AC | {dataAtual}</p>
       </div>
 
       <div style={{ fontSize: '0.875rem', color: '#4b5563', border: 'none' }}>

@@ -289,6 +289,15 @@ export function EnviadosProvider({ children }: { children: React.ReactNode }) {
       (node as HTMLElement).style.boxShadow = 'none';
       (node as HTMLElement).style.outline = 'none';
 
+      // Aguardar carregamento de imagens
+      const images = node.querySelectorAll('img');
+      await Promise.all(Array.from(images).filter((img: HTMLImageElement) => !img.complete).map((img: HTMLImageElement) => {
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
+
       const canvas = await html2canvas(node, {
         backgroundColor: '#fff',
         scale: 1.5,
@@ -296,6 +305,7 @@ export function EnviadosProvider({ children }: { children: React.ReactNode }) {
         logging: false,
         width: (node as HTMLElement).scrollWidth,
         height: (node as HTMLElement).scrollHeight,
+        allowTaint: true,
       });
       
       (node as HTMLElement).style.border = prevBorder;

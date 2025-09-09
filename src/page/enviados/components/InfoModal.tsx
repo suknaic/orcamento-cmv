@@ -14,6 +14,24 @@ export function InfoModal() {
     propostaRef
   } = useEnviadosContext();
 
+  // Função para calcular desconto
+  const calcularDesconto = (valorTotal: number, desconto: string) => {
+    if (!desconto) return 0;
+    const descontoLimpo = desconto.trim().replace(",", ".");
+    if (descontoLimpo.includes("%")) {
+      const perc = parseFloat(descontoLimpo.replace("%", ""));
+      if (!isNaN(perc) && isFinite(perc)) {
+        return valorTotal * (perc / 100);
+      }
+    } else {
+      const val = parseFloat(descontoLimpo);
+      if (!isNaN(val) && isFinite(val)) {
+        return val;
+      }
+    }
+    return 0;
+  };
+
   if (showInfoModal !== 'pdf' || !orcamentoSelecionado) {
     return null;
   }
@@ -32,6 +50,15 @@ export function InfoModal() {
     (node as HTMLElement).style.outline = 'none';
     
     try {
+      // Aguardar carregamento de imagens
+      const images = node.querySelectorAll('img');
+      await Promise.all(Array.from(images).filter(img => !img.complete).map(img => {
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
+      
       const canvas = await html2canvas(node, {
         backgroundColor: '#fff',
         scale: 1.5,
@@ -39,6 +66,7 @@ export function InfoModal() {
         logging: false,
         width: (node as HTMLElement).scrollWidth,
         height: (node as HTMLElement).scrollHeight,
+        allowTaint: true,
       });
       
       const imgData = canvas.toDataURL('image/jpeg', 0.8);
@@ -237,7 +265,7 @@ export function InfoModal() {
           <PropostaComercial
             cliente={info.cliente || orcamentoSelecionado.cliente_nome}
             validade={info.validade || '7 dias'}
-            desconto={Number(info.desconto) || 0}
+            desconto={calcularDesconto(orcamentoSelecionado.valor_total, info.desconto)}
             pagamento={info.pagamento || 'À vista'}
             orcamento={orcamentoSelecionado.produtos}
             total={orcamentoSelecionado.valor_total}

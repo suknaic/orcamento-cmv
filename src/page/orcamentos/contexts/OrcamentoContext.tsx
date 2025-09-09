@@ -1,14 +1,9 @@
 import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
 import { toast } from 'react-toastify';
+import type { ItemOrcamento } from '@/lib/models/orcamento.models';
+import { OrcamentoService } from '@/lib/services/orcamento.service';
 
-export interface ProdutoOrcamento {
-  materialSelecionado: any;
-  tipo: string;
-  preco: number;
-  largura: string;
-  altura: string;
-  quantidade: number;
-  valor: number;
+export interface ItemOrcamentoUI extends ItemOrcamento {
   _buscaMaterial?: string;
   _showDropdown?: boolean;
 }
@@ -22,8 +17,8 @@ export interface InfoOrcamento {
 
 interface OrcamentoContextType {
   // Estados dos produtos
-  produtos: ProdutoOrcamento[];
-  setProdutos: React.Dispatch<React.SetStateAction<ProdutoOrcamento[]>>;
+  produtos: ItemOrcamentoUI[];
+  setProdutos: React.Dispatch<React.SetStateAction<ItemOrcamentoUI[]>>;
   materiais: any[];
   setMateriais: React.Dispatch<React.SetStateAction<any[]>>;
   
@@ -65,6 +60,9 @@ interface OrcamentoContextType {
   // Refs
   materialRefs: React.MutableRefObject<(HTMLInputElement | null)[]>;
   propostaRef: React.RefObject<HTMLDivElement>;
+
+  // Serviço
+  orcamentoService: OrcamentoService;
   
   // Funções
   adicionarProduto: () => void;
@@ -83,17 +81,18 @@ const OrcamentoContext = createContext<OrcamentoContextType | undefined>(undefin
 export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
   const materialRefs = useRef<(HTMLInputElement | null)[]>([]);
   const propostaRef = useRef<HTMLDivElement>(null);
+  const orcamentoService = new OrcamentoService();
   
   // Estados dos produtos
-  const [produtos, setProdutos] = useState<ProdutoOrcamento[]>([
+  const [produtos, setProdutos] = useState<ItemOrcamentoUI[]>([
     {
-      materialSelecionado: null,
-      tipo: "",
-      preco: 0,
-      largura: "",
-      altura: "",
+      id: Date.now(),
+      produto: { id: 0, nome: '', unidadeMedida: 'm2', precoUnitario: 0 },
+      componentes: [],
       quantidade: 1,
-      valor: 0,
+      quantidadeTotal: 0,
+      precoTotal: 0,
+      _showDropdown: true,
     },
   ]);
   const [materiais, setMateriais] = useState([]);
@@ -142,39 +141,31 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Cálculos derivados
-  const orcamentoData = produtos.map((p) => {
-    const valorUnitario = p.quantidade > 0 ? p.valor / p.quantidade : 0;
-    return {
-      descricao: p.materialSelecionado
-        ? p.materialSelecionado +
-          (p.tipo === "m2"
-            ? ` (${p.largura}x${p.altura}m${
-                p.quantidade > 1 ? `, ${p.quantidade}x` : ""
-              })`
-            : p.tipo === "milheiro"
-            ? p.quantidade === 1
-              ? " (1 milheiro)"
-              : ` (${p.quantidade} milheiros)`
-            : p.tipo === "unidade"
-            ? p.quantidade === 1
-              ? " (1 unidade)"
-              : ` (${p.quantidade} unidades)`
-            : p.tipo === "kit"
-            ? p.quantidade === 1
-              ? " (1 kit)"
-              : ` (${p.quantidade} kits)`
-            : "")
-        : "",
-      quantidade: p.quantidade,
-      valorUnitario,
-      total: p.valor,
-    };
-  });
-  
-  const valorBruto = produtos.reduce((acc, p) => acc + p.valor, 0);
+  const valorBruto = produtos.reduce((acc, p) => acc + p.precoTotal, 0);
   const descontoAplicado = calcularDesconto(valorBruto, info.desconto);
   const valorTotal = Math.max(0, valorBruto - descontoAplicado);
 
+  const orcamentoData = produtos.map((p) => {
+    // Formatação para melhor visualização no PDF
+    let descricaoFinal = p.produto.nome;
+    
+    // Se tem componentes, formata para o formato de medidas
+    if (p.componentes.length > 0) {
+      const componentesFormatados = p.componentes.map(c => 
+        `${c.largura}x${c.altura}m (${c.quantidade}x)`
+      ).join(', ');
+      
+      descricaoFinal = `${p.produto.nome} (${componentesFormatados})`;
+    }
+    
+    return {
+      descricao: descricaoFinal,
+      quantidade: p.quantidade, // Quantidade de produtos, não a área total
+      valorUnitario: p.produto.precoUnitario,
+      total: p.precoTotal,
+    };
+  });
+  
   // Carregar materiais
   useEffect(() => {
     fetch("/api/config")
@@ -214,31 +205,18 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
 
     const msg = produtos
       .map((p) => {
-        if (!p.materialSelecionado) return "";
-        const quantidade = p.quantidade || 1;
-        const largura = p.largura
-          ? Number(p.largura).toLocaleString("pt-BR", {
-              minimumFractionDigits: 2,
-            })
-          : "";
-        const altura = p.altura
-          ? Number(p.altura).toLocaleString("pt-BR", {
-              minimumFractionDigits: 2,
-            })
-          : "";
-        const tam = largura && altura ? `tam. ${largura}x${altura}m` : "";
-        const valorUnit = p.quantidade > 0 ? p.valor / p.quantidade : 0;
+        if (!p.produto.nome) return "";
+
+        const componentesStr = p.componentes.map(c => 
+          `  - ${c.descricao || 'Componente'}: ${c.largura}x${c.altura}m (${c.quantidade}x)`
+        ).join('\n');
+
         return [
-          `${quantidade} un. ${p.materialSelecionado}`,
-          tam,
-          `V. Unit.:............................R$ ${valorUnit.toLocaleString(
-            "pt-BR",
-            { minimumFractionDigits: 2 }
-          )}`,
-          `TOTAL:.............................*R$${p.valor.toLocaleString(
-            "pt-BR",
-            { minimumFractionDigits: 2 }
-          )}*`,
+          `${p.produto.nome}`,
+          componentesStr,
+          `Total (m²):.........................${p.quantidadeTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+          `V. Unit. (m²):...................R$ ${p.produto.precoUnitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+          `TOTAL:.............................*R$${p.precoTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}*`,
           "",
         ]
           .filter(Boolean)
@@ -258,16 +236,15 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
   // Funções
   const adicionarProduto = () => {
     setProdutos((produtos) => {
-      const novos = [
+      const novos: ItemOrcamentoUI[] = [
         ...produtos,
         {
-          materialSelecionado: null,
-          tipo: "",
-          preco: 0,
-          largura: "",
-          altura: "",
+          id: Date.now(),
+          produto: { id: 0, nome: '', unidadeMedida: 'm2', precoUnitario: 0 },
+          componentes: [],
           quantidade: 1,
-          valor: 0,
+          quantidadeTotal: 0,
+          precoTotal: 0,
           _showDropdown: true,
         },
       ];
@@ -397,6 +374,15 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
       node.style.border = "none";
       node.style.boxShadow = "none";
       node.style.outline = "none";
+      
+      // Aguardar carregamento de imagens
+      const images = node.querySelectorAll('img');
+      await Promise.all(Array.from(images).filter(img => !img.complete).map(img => {
+        return new Promise((resolve) => {
+          img.onload = resolve;
+          img.onerror = resolve;
+        });
+      }));
 
       const canvas = await html2canvas(node, {
         backgroundColor: "#fff",
@@ -405,6 +391,7 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
         logging: false,
         width: node.scrollWidth,
         height: node.scrollHeight,
+        allowTaint: true,
       });
 
       node.style.border = prevBorder;
@@ -508,6 +495,7 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
     valorTotal,
     materialRefs,
     propostaRef,
+    orcamentoService,
     adicionarProduto,
     removerProduto,
     copiarOrcamento,
