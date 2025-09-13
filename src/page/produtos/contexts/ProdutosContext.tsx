@@ -64,7 +64,7 @@ export function ProdutosProvider({ children }: { children: React.ReactNode }) {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [novo, setNovo] = useState<Produto>({ id: '', nome: "", tipo: "m2", preco: 0 });
   const [editando, setEditando] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Começamos com loading true para carregar na montagem
   const [ordem, setOrdem] = useState({ campo: 'nome', direcao: 'asc' as 'asc' | 'desc' });
   const [busca, setBusca] = useState("");
   const [pagina, setPagina] = useState(1);
@@ -72,9 +72,39 @@ export function ProdutosProvider({ children }: { children: React.ReactNode }) {
 
   // Carregar produtos do backend
   useEffect(() => {
-    fetch("/api/config")
-      .then(res => res.json())
-      .then(data => setProdutos(data.materiais || []));
+    // Criamos uma flag para prevenir um loop infinito
+    let isMounted = true;
+    
+    // Carregar produtos apenas quando necessário (loading = true)
+    if (loading) {
+      console.log("Carregando produtos...");
+      fetch("/api/config")
+        .then(res => {
+          if (!res.ok) {
+            throw new Error(`Erro ao carregar produtos: ${res.status} ${res.statusText}`);
+          }
+          return res.json();
+        })
+        .then(data => {
+          // Verificar se o componente ainda está montado antes de atualizar o estado
+          if (isMounted) {
+            setProdutos(data.materiais || []);
+            setLoading(false); // Definir loading para false após buscar
+          }
+        })
+        .catch(error => {
+          console.error("Erro ao carregar produtos:", error);
+          // Verificar se o componente ainda está montado antes de atualizar o estado
+          if (isMounted) {
+            setLoading(false);
+          }
+        });
+    }
+    
+    // Cleanup function para evitar atualizações após desmontagem
+    return () => {
+      isMounted = false;
+    };
   }, [loading]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -83,7 +113,10 @@ export function ProdutosProvider({ children }: { children: React.ReactNode }) {
 
   const salvarProduto = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Já atualizamos o estado para loading para evitar múltiplas submissões
     setLoading(true);
+    
     let novosMateriais;
     if (editando) {
       // Editando: substitui pelo id
@@ -98,18 +131,30 @@ export function ProdutosProvider({ children }: { children: React.ReactNode }) {
         { ...novoSemId, preco: Number(novo.preco) }
       ];
     }
+    
     const payload = {
       materiais: novosMateriais,
       acabamentos: [],
     };
+
+    console.log("Enviando payload para salvamento:", payload);
+    
     fetch("/api/config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
-    }).then(() => {
+    }).then(response => {
+      if (!response.ok) {
+        throw new Error(`Erro ao salvar: ${response.status} ${response.statusText}`);
+      }
+      return response.json();
+    }).then(data => {
       setNovo({ id: '', nome: "", tipo: "m2", preco: 0 });
       setEditando(null);
-      setLoading(false);
+      // O estado loading já será atualizado pelo efeito quando a busca de produtos for concluída
+    }).catch(error => {
+      alert(`Erro ao salvar produto: ${error.message}`);
+      setLoading(false); // Em caso de erro, precisamos resetar o loading
     });
   };
 
@@ -119,16 +164,37 @@ export function ProdutosProvider({ children }: { children: React.ReactNode }) {
   };
 
   const removerProdutoPorId = (id: string) => {
+    // Aqui também setamos loading para true para acionar o efeito de busca após a remoção
     setLoading(true);
+    
+    const produtosFiltrados = produtos.filter(p => p.id !== id);
+    console.log(`Removendo produto com ID ${id}, restando ${produtosFiltrados.length} produtos`);
+    
     const payload = {
-      materiais: produtos.filter(p => p.id !== id),
+      materiais: produtosFiltrados,
       acabamentos: [],
     };
+    
     fetch("/api/config", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
-    }).then(() => setLoading(false));
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error(`Erro ao remover: ${response.status} ${response.statusText}`);
+      }
+      return response.json();
+    })
+    .then(data => {
+      console.log("Produto removido com sucesso:", data);
+    })
+    .catch(error => {
+      console.error("Erro ao remover produto:", error);
+      alert(`Erro ao remover produto: ${error.message}`);
+      setLoading(false); // Em caso de erro, precisamos resetar o loading
+    });
+    // O estado loading será atualizado pelo efeito quando a busca de produtos for concluída
   };
 
   const cancelarEdicao = () => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { OrcamentoPage } from "./page/orcamentos/";
 import { ProdutosCrudPage } from "./page/produtos";
 import { OrcamentosEnviadosPage } from "./page/enviados";
@@ -9,10 +9,16 @@ import { Routes, Route } from "react-router-dom";
 import { WhatsModal } from "./components/WhatsModal";
 import { Navbar } from "./components/Navbar";
 import { Sidebar } from "./components/Sidebar";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 
 export function App() {
+  // Refs para prevenir atualizações desnecessárias
+  const socketRef = useRef<any>(null);
+  
+  // Estado para sidebar
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
   // Estado para QRCode, status e modal do WhatsApp
   const [qr, setQr] = useState<string | null>(null);
   const [whatsConnected, setWhatsConnected] = useState(false);
@@ -30,7 +36,7 @@ export function App() {
   const [orcamento, setOrcamento] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [statusEnvio, setStatusEnvio] = useState<string | null>(null);
-  const [socketInstance, setSocketInstance] = useState<any>(null);
+  
   // Estado para materiais e acabamentos vindos do backend
   const [materiais, setMateriais] = useState<{ nome: string; preco: number }[]>([]);
   const [acabamentos, setAcabamentos] = useState<{ nome: string; preco: number }[]>([]);
@@ -44,25 +50,48 @@ export function App() {
       });
   }, []);
 
-  // Conexão com socket.io
+  // Conexão com socket.io - usando uma abordagem mais estável com useEffect
   useEffect(() => {
-    import("socket.io-client").then((io) => {
-      const socket = io.default("http://localhost:3001");
-      setSocketInstance(socket);
-      socket.on("qr", (data: string) => setQr(data));
-      socket.on("message", (msg: string) => setMessage(msg));
-      socket.on("connected", () => {
-        setWhatsConnected(true);
-        setQr(check); // Troca o QRCode pelo check.svg
-        setMessage("WhatsApp conectado com sucesso!");
-      });
-      socket.on("statusOrcamento", (res: any) => {
-        setStatusEnvio(res.status === "enviado" ? "Orçamento enviado com sucesso!" : "Falha ao enviar orçamento.");
-        setLoading(false);
-      });
-      return () => socket.disconnect();
+    // Usando require fora do corpo da função para evitar imports dinâmicos
+    const io = require("socket.io-client");
+    
+    // Criamos a instância do socket apenas uma vez e armazenamos na ref
+    const socket = io("http://localhost:3001");
+    socketRef.current = socket;
+    
+    // Configurando os event listeners
+    socket.on("qr", (data: string) => {
+      setQr(data);
     });
-  }, []);
+    
+    socket.on("message", (msg: string) => {
+      setMessage(msg);
+    });
+    
+    socket.on("connected", () => {
+      setWhatsConnected(true);
+      setQr(check);
+      setMessage("WhatsApp conectado com sucesso!");
+    });
+    
+    socket.on("statusOrcamento", (res: any) => {
+      setStatusEnvio(res.status === "enviado" ? "Orçamento enviado com sucesso!" : "Falha ao enviar orçamento.");
+      setLoading(false);
+    });
+    
+    // Avisa o servidor que o cliente está pronto
+    socket.emit("clientReady");
+    
+    // Cleanup function para remover event listeners e desconectar socket
+    return () => {
+      socket.off("qr");
+      socket.off("message");
+      socket.off("connected");
+      socket.off("statusOrcamento");
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, []); // Array vazio = executar apenas uma vez na montagem
 
   // Cálculo automático do orçamento usando dados do backend
   useEffect(() => {
@@ -104,25 +133,61 @@ export function App() {
     setStatusEnvio(null);
     if (!validarCampos()) return;
     setLoading(true);
-    if (socketInstance) {
-      socketInstance.emit("enviarOrcamento", { ...form, orcamento });
+    if (socketRef.current) {
+      socketRef.current.emit("enviarOrcamento", { ...form, orcamento });
+    } else {
+      setLoading(false);
+      setFormError("Socket não está conectado. Tente novamente.");
     }
   }
 
-  const handleReconnect = async () => {
+  // Otimizado com useCallback para evitar recriações desnecessárias
+  const handleReconnect = useCallback(async () => {
+    // Definindo estados usando valores diretos, não closures
     setWhatsConnected(false);
     setQr(null);
     setMessage("Reconectando WhatsApp...");
-    await fetch("/api/reconnect-bot", { method: "POST" });
-    setTimeout(() => {
-      setMessage((msg) => {
-        if (!whatsConnected && !qr) {
-          return "Falha ao reconectar. Tente novamente.";
+    
+    try {
+      const response = await fetch("/api/reconnect-bot", { method: "POST" });
+      
+      if (!response.ok) {
+        throw new Error("Falha na requisição de reconexão");
+      }
+      
+      // Usamos um setTimeout para verificar o status depois
+      // mas não dependemos dos valores de estado no momento da criação da callback
+      setTimeout(async () => {
+        try {
+          const statusResponse = await fetch("/api/bot-status");
+          
+          // Verifica se a resposta foi bem-sucedida antes de tentar fazer o parse do JSON
+          if (!statusResponse.ok) {
+            throw new Error(`API respondeu com status ${statusResponse.status}`);
+          }
+          
+          // Verifica o tipo de conteúdo da resposta
+          const contentType = statusResponse.headers.get("content-type");
+          if (!contentType || !contentType.includes("application/json")) {
+            throw new Error(`Resposta não é JSON: ${contentType}`);
+          }
+          
+          const status = await statusResponse.json();
+          
+          // Aqui não usamos os valores de closure, mas sim os novos dados da API
+          if (!status.connected) {
+            setMessage("Falha ao reconectar. Tente novamente.");
+          }
+        } catch (error) {
+          console.error("Erro ao verificar status:", error);
+          setMessage("Erro ao verificar status. Tente novamente.");
         }
-        return msg;
-      });
-    }, 10000);
-  }
+      }, 10000);
+    } catch (error) {
+      console.error("Erro ao reconectar:", error);
+      setMessage("Erro ao tentar reconectar. Tente novamente.");
+    }
+  }, []); // Sem dependências para evitar recriações
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -133,20 +198,22 @@ export function App() {
           onSidebarToggle={() => setSidebarOpen(true)}
         />
         <div className="pt-20 bg-background">
-          <Routes>
-            <Route path="/" element={<OrcamentoPage />} />
-            <Route path="/produtos" element={<ProdutosCrudPage />} />
-            <Route path="/orcamentos" element={<OrcamentosEnviadosPage />} />
-          </Routes>
-          {/* Modal WhatsApp */}
-          <WhatsModal
-            show={showWhatsModal}
-            onClose={() => setShowWhatsModal(false)}
-            whatsConnected={whatsConnected}
-            qr={qr}
-            message={message}
-            onReconnect={handleReconnect}
-          />
+          <ErrorBoundary>
+            <Routes>
+              <Route path="/" element={<ErrorBoundary><OrcamentoPage /></ErrorBoundary>} />
+              <Route path="/produtos" element={<ErrorBoundary><ProdutosCrudPage /></ErrorBoundary>} />
+              <Route path="/orcamentos" element={<ErrorBoundary><OrcamentosEnviadosPage /></ErrorBoundary>} />
+            </Routes>
+            {/* Modal WhatsApp */}
+            <WhatsModal
+              show={showWhatsModal}
+              onClose={() => setShowWhatsModal(false)}
+              whatsConnected={whatsConnected}
+              qr={qr}
+              message={message}
+              onReconnect={handleReconnect}
+            />
+          </ErrorBoundary>
         </div>
       </div>
     </div>

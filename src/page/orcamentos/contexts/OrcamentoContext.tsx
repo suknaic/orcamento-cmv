@@ -319,6 +319,9 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
       const nomeCliente = nomeTemporario || "Cliente";
       const mensagemComCliente = `*ORÇAMENTO PARA: ${nomeCliente.toUpperCase()}*\n\n${mensagem}`;
 
+      console.log("Enviando orçamento para:", nomeCliente);
+      console.log("Contatos selecionados:", contatosSelecionados);
+      
       const resp = await fetch("/api/enviarMensagem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -334,7 +337,9 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
       let data = null;
       try {
         data = await resp.json();
+        console.log("Resposta do servidor:", data);
       } catch (jsonErr) {
+        console.error("Erro ao processar resposta do servidor:", jsonErr);
         toast.error("Erro ao processar resposta do servidor. Tente novamente.");
         setShowModal(false);
         setShowConfirmaNomeModal(false);
@@ -342,13 +347,14 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data && data.ok) {
-        toast.success("Mensagem enviada para os contatos selecionados!");
+        toast.success(`Mensagem enviada com sucesso! ID do orçamento: ${data.orcamentoId || 'N/A'}`);
       } else {
         toast.error(
           "Falha ao enviar mensagem: " + (data?.error || "Erro desconhecido")
         );
       }
     } catch (e) {
+      console.error("Erro ao enviar mensagem:", e);
       toast.error("Erro ao enviar: " + e);
     }
     setShowModal(false);
@@ -365,6 +371,7 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
 
     setLoadingEnviar(true);
     try {
+      console.log("Iniciando geração do PDF...");
       const { default: html2canvas } = await import("html2canvas");
       const { jsPDF } = await import("jspdf");
 
@@ -384,6 +391,7 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
         });
       }));
 
+      console.log("Renderizando HTML para canvas...");
       const canvas = await html2canvas(node, {
         backgroundColor: "#fff",
         scale: 1.5,
@@ -397,6 +405,7 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
       node.style.border = prevBorder;
       node.style.boxShadow = prevBoxShadow;
 
+      console.log("Gerando PDF a partir do canvas...");
       const imgData = canvas.toDataURL("image/jpeg", 0.8);
       const pdf = new jsPDF("p", "mm", "a4");
       const imgWidth = 210;
@@ -416,17 +425,24 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
       }
 
       const pdfBlob = pdf.output("blob");
+      console.log(`PDF gerado: tamanho ${pdfBlob.size} bytes`);
+      
+      const nomeCliente = info.cliente || "Cliente";
+      console.log(`Enviando PDF para cliente: ${nomeCliente}`);
+      console.log("Contatos selecionados:", contatosSelecionados);
+      
       const formData = new FormData();
       formData.append(
         "pdf",
         pdfBlob,
-        `Orcamento-${info.cliente || "Cliente"}.pdf`
+        `Orcamento-${nomeCliente}.pdf`
       );
       formData.append("numeros", JSON.stringify(contatosSelecionados));
-      formData.append("cliente_nome", info.cliente || "Cliente");
+      formData.append("cliente_nome", nomeCliente);
       formData.append("produtos", JSON.stringify(orcamentoData));
       formData.append("valor_total", valorTotal.toString());
 
+      console.log("Enviando PDF para o servidor...");
       const resp = await fetch("/api/enviarPDF", {
         method: "POST",
         body: formData,
@@ -435,20 +451,23 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
       let data = null;
       try {
         data = await resp.json();
+        console.log("Resposta do servidor:", data);
       } catch (jsonErr) {
+        console.error("Erro ao processar resposta do servidor:", jsonErr);
         toast.error("Erro ao processar resposta do servidor. Tente novamente.");
         setShowModal(false);
         return;
       }
 
       if (data && data.ok) {
-        toast.success("PDF enviado para os contatos selecionados!");
+        toast.success(`PDF enviado com sucesso! ID do orçamento: ${data.orcamentoId || 'N/A'}`);
       } else {
         toast.error(
           "Falha ao enviar PDF: " + (data?.error || "Erro desconhecido")
         );
       }
     } catch (e) {
+      console.error("Erro ao enviar PDF:", e);
       toast.error("Erro ao enviar PDF: " + e);
     }
     setShowModal(false);

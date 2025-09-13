@@ -2,6 +2,8 @@ import { bot } from '../bot';
 import db from '../lib/db';
 
 const POST = async (req: Request) => {
+  console.log("Iniciando processamento de envio PDF (legacy)");
+  
   // Espera multipart/form-data
   const contentType = req.headers.get('content-type') || '';
   if (!contentType.includes('multipart/form-data')) {
@@ -19,10 +21,14 @@ const POST = async (req: Request) => {
   const produtosRaw = formData.get('produtos') as string;
   const valorTotal = parseFloat(formData.get('valor_total') as string || '0');
 
+  console.log(`Processando envio de PDF para o cliente: ${clienteNome}, valor: ${valorTotal}`);
+
   let numeros: string[] = [];
   try {
     numeros = JSON.parse(numerosRaw as string);
-  } catch {
+    console.log(`Números para envio: ${numeros.join(", ")}`);
+  } catch (e) {
+    console.error("Erro ao processar números:", e);
     return new Response(JSON.stringify({ ok: false, error: 'Números inválidos' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
@@ -30,7 +36,8 @@ const POST = async (req: Request) => {
   }
 
   if (!Array.isArray(numeros) || !file) {
-    return new Response(JSON.stringify({ ok: false, error: 'Dados inválidos' }), {
+    console.error("Dados inválidos:", { numeros, temArquivo: !!file });
+    return new Response(JSON.stringify({ ok: false, error: 'Dados inválidos: números ou arquivo PDF' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -40,11 +47,19 @@ const POST = async (req: Request) => {
   let orcamentoId = null;
   if (clienteNome && produtosRaw && valorTotal > 0) {
     try {
-      const produtos = JSON.parse(produtosRaw);
+      console.log("Tentando salvar orçamento no banco");
+      let produtos;
+      try {
+        produtos = JSON.parse(produtosRaw);
+      } catch (e) {
+        console.error("Erro ao analisar JSON de produtos:", e);
+        produtos = [];
+      }
       
       // Garantir que o nome do cliente não seja genérico
       const nomeReal = clienteNome === 'Cliente' ? 'Cliente Desconhecido' : clienteNome;
       
+      db.run('BEGIN TRANSACTION');
       const result = db.prepare(`
         INSERT INTO orcamentos_enviados 
         (cliente_nome, cliente_numero, produtos, valor_total, tipo_envio, status)
@@ -57,10 +72,20 @@ const POST = async (req: Request) => {
         'whatsapp_pdf',
         'enviando'
       );
+      
       orcamentoId = result.lastInsertRowid;
+      console.log(`Orçamento salvo com ID: ${orcamentoId}`);
+      db.run('COMMIT');
     } catch (e) {
-      console.error('Erro ao salvar orçamento PDF:', e);
+      db.run('ROLLBACK');
+      console.error('Erro ao salvar orçamento PDF no banco:', e);
     }
+  } else {
+    console.error("Dados insuficientes para salvar orçamento:", { 
+      temCliente: !!clienteNome, 
+      temProdutos: !!produtosRaw, 
+      valorTotal 
+    });
   }
 
   // Detecta mimetype e lê buffer
@@ -69,16 +94,21 @@ const POST = async (req: Request) => {
   const base64 = buffer.toString('base64');
   const filename = (file as any).name || 'proposta.pdf';
 
+  console.log(`Arquivo PDF preparado: ${filename}, tamanho: ${buffer.length} bytes`);
+
   const resultados = [];
   for (const numero of numeros) {
     try {
+      console.log(`Enviando PDF para ${numero}`);
       await bot.sendOrcamentoPDF(numero, mensagem as string, {
         mimetype,
         data: base64,
         filename,
       });
       resultados.push({ numero, status: 'ok' });
+      console.log(`Envio para ${numero} concluído com sucesso`);
     } catch (e) {
+      console.error(`Erro ao enviar para ${numero}:`, e);
       resultados.push({ numero, status: 'erro', erro: String(e) });
     }
   }
@@ -86,6 +116,7 @@ const POST = async (req: Request) => {
   // Atualizar status do orçamento após envio
   if (orcamentoId) {
     try {
+      console.log(`Atualizando status do orçamento ${orcamentoId}`);
       const enviados = resultados.filter(r => r.status === 'ok').length;
       const status = enviados > 0 ? 'enviado' : 'erro_envio';
       db.prepare(`
@@ -93,12 +124,15 @@ const POST = async (req: Request) => {
         SET status = ?, data_envio = CURRENT_TIMESTAMP
         WHERE id = ?
       `).run(status, orcamentoId);
+      console.log(`Status atualizado para: ${status}`);
     } catch (e) {
-      console.error('Erro ao atualizar status do orçamento PDF:', e);
+      console.error(`Erro ao atualizar status do orçamento ${orcamentoId}:`, e);
     }
+  } else {
+    console.warn("Não foi possível atualizar o status pois o orçamento não foi salvo no banco");
   }
   
-  return new Response(JSON.stringify({ ok: true, resultados }), {
+  return new Response(JSON.stringify({ ok: true, resultados, orcamentoId }), {
     headers: { 'Content-Type': 'application/json' },
   });
 };

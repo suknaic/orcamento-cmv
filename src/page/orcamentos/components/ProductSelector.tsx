@@ -43,15 +43,42 @@ function ComponenteEditor({ item, itemIndex, atualizarItem }: { item: ItemOrcame
 
   // Efeito para recalcular totais quando os componentes mudam
   useEffect(() => {
-    setProdutos(produtos => produtos.map((p, idx) => {
-      if (idx === itemIndex) {
-        const itemAtualizado = { ...p };
-        orcamentoService.calcularTotaisItem(itemAtualizado);
-        return itemAtualizado;
-      }
-      return p;
-    }));
-  }, [item.componentes, item.produto.precoUnitario, itemIndex, setProdutos, orcamentoService]);
+    // Usamos uma flag para evitar loops infinitos
+    let skip = false;
+    
+    // Não fazemos nada se não tiver componentes para evitar cálculos desnecessários
+    if (item.componentes.length === 0 && item.produto.unidadeMedida !== 'm2') {
+      return;
+    }
+    
+    // Verificamos se realmente precisamos recalcular
+    const precisaRecalcular = item.componentes.some(c => 
+      c.largura > 0 && c.altura > 0 && c.quantidade > 0
+    ) || item.produto.precoUnitario > 0;
+    
+    if (precisaRecalcular) {
+      setProdutos(produtos => {
+        // Evitamos alterações aninhadas de estado
+        if (skip) return produtos;
+        
+        // Criamos um novo array para evitar mutações do estado original
+        return produtos.map((p, idx) => {
+          if (idx === itemIndex) {
+            const itemAtualizado = { ...p };
+            // Calculamos os totais sem modificar o estado dentro do setProdutos
+            orcamentoService.calcularTotaisItem(itemAtualizado);
+            return itemAtualizado;
+          }
+          return p;
+        });
+      });
+    }
+    
+    // Cleanup para evitar atualizações após desmontagem
+    return () => {
+      skip = true;
+    };
+  }, [item.componentes, item.produto.precoUnitario, itemIndex, setProdutos, orcamentoService, item.produto.unidadeMedida]);
 
 
   return (

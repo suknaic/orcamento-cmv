@@ -48,6 +48,13 @@ const server = serve({
       },
     },
 
+    "/api/bot-status": {
+      async GET(req) {
+        const mod = await import("./api/bot-status.ts");
+        return mod.GET();
+      },
+    },
+
     // Rota para orçamentos enviados
     "/api/orcamentosEnviados": {
       async GET(req) {
