@@ -1,16 +1,21 @@
 import { bot } from '../bot';
 import db from '../lib/db';
 
-export default {
-  async POST(req: Request) {
-    console.log("Iniciando processamento de envio PDF");
-    
+export const POST = async (req: Request) => {
+  console.log("Iniciando processamento de envio PDF");
+  
+  const headers = {
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate'
+  };
+  
+  try {
     // Espera multipart/form-data
     const contentType = req.headers.get('content-type') || '';
     if (!contentType.includes('multipart/form-data')) {
       return new Response(JSON.stringify({ ok: false, error: 'Content-Type deve ser multipart/form-data' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers
       });
     }
 
@@ -32,7 +37,7 @@ export default {
       console.error("Erro ao processar números:", e);
       return new Response(JSON.stringify({ ok: false, error: 'Números inválidos' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers
       });
     }
 
@@ -40,7 +45,7 @@ export default {
       console.error("Dados inválidos:", { numeros, temArquivo: !!file });
       return new Response(JSON.stringify({ ok: false, error: 'Dados inválidos: números ou arquivo PDF' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers
       });
     }
 
@@ -134,7 +139,16 @@ export default {
     }
     
     return new Response(JSON.stringify({ ok: true, resultados, orcamentoId }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers
     });
-  },
+  } catch (error) {
+    console.error("Erro ao processar envio de PDF:", error);
+    return new Response(JSON.stringify({ 
+      ok: false, 
+      error: error instanceof Error ? error.message : String(error)
+    }), {
+      status: 500,
+      headers
+    });
+  }
 };

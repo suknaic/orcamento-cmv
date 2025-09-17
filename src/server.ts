@@ -9,8 +9,14 @@ const io = new Server(httpServer, {
   }
 });
 
+// Eventos globais do socket
 io.on("connection", (socket) => {
   console.log("Cliente conectado ao Socket.IO");
+  
+  // Quando cliente desconecta
+  socket.on("disconnect", () => {
+    console.log("Cliente desconectado do Socket.IO");
+  });
 });
 
 httpServer.listen(3001, () => {

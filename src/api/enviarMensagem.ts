@@ -1,10 +1,15 @@
 import { bot } from '../bot';
 import db from '../lib/db';
 
-export default {
-  async POST(req: Request) {
-    console.log("Iniciando processamento de envio de mensagem WhatsApp");
+export const POST = async (req: Request) => {
+  console.log("Iniciando processamento de envio de mensagem WhatsApp");
 
+  const headers = {
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate'
+  };
+
+  try {
     const { numeros, mensagem, cliente_nome, produtos, valor_total } = await req.json();
     console.log(`Processando envio para ${cliente_nome}, valor: ${valor_total}, números: ${numeros?.length || 0}`);
     
@@ -12,7 +17,7 @@ export default {
       console.error("Dados inválidos:", { temNumeros: Array.isArray(numeros), temMensagem: !!mensagem });
       return new Response(JSON.stringify({ ok: false, error: 'Dados inválidos' }), {
         status: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers
       });
     }
     const resultados = [];
@@ -103,7 +108,16 @@ export default {
     }
     
     return new Response(JSON.stringify({ ok: true, resultados, orcamentoId }), {
-      headers: { 'Content-Type': 'application/json' },
+      headers
     });
-  },
+  } catch (error) {
+    console.error("Erro ao processar envio de mensagem:", error);
+    return new Response(JSON.stringify({ 
+      ok: false, 
+      error: error instanceof Error ? error.message : String(error)
+    }), {
+      status: 500,
+      headers
+    });
+  }
 };

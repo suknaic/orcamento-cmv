@@ -1,4 +1,5 @@
 import check from "../check.svg";
+import { useState } from "react";
 
 interface WhatsModalProps {
   show: boolean;
@@ -10,7 +11,61 @@ interface WhatsModalProps {
 }
 
 export function WhatsModal({ show, onClose, whatsConnected, qr, message, onReconnect }: WhatsModalProps) {
+  const [isReconnecting, setIsReconnecting] = useState(false);
+  const [reconnectStatus, setReconnectStatus] = useState<string | null>(null);
+  
+  const handleReconnect = async () => {
+    setIsReconnecting(true);
+    setReconnectStatus("Iniciando reconexão do WhatsApp...");
+    
+    try {
+      // Chamar diretamente a API de reconexão
+      const response = await fetch("/api/reconnect-bot", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.ok) {
+        setReconnectStatus("Reconexão iniciada com sucesso! Aguardando WhatsApp conectar...");
+        
+        // Chamamos também o onReconnect para garantir que o componente pai seja notificado
+        await onReconnect();
+        
+        // Aguardar um tempo para o status ser atualizado
+        setTimeout(() => {
+          setIsReconnecting(false);
+          setReconnectStatus("Reconexão concluída. Verifique o status do WhatsApp.");
+          
+          // Limpar o status após alguns segundos
+          setTimeout(() => setReconnectStatus(null), 5000);
+        }, 15000);
+      } else {
+        setReconnectStatus(`Falha na reconexão: ${data.message || "Erro desconhecido"}`);
+        setTimeout(() => {
+          setIsReconnecting(false);
+          
+          // Limpar o status após alguns segundos
+          setTimeout(() => setReconnectStatus(null), 5000);
+        }, 3000);
+      }
+    } catch (error) {
+      console.error("Erro ao reconectar WhatsApp:", error);
+      setReconnectStatus("Erro ao tentar reconectar. Tente novamente.");
+      setTimeout(() => {
+        setIsReconnecting(false);
+        
+        // Limpar o status após alguns segundos
+        setTimeout(() => setReconnectStatus(null), 5000);
+      }, 3000);
+    }
+  };
+  
   if (!show) return null;
+  
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-50 p-4">
       <div className="bg-card rounded-2xl shadow-2xl max-w-lg w-full relative overflow-hidden border border-border">
@@ -32,7 +87,7 @@ export function WhatsModal({ show, onClose, whatsConnected, qr, message, onRecon
                 <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893A11.821 11.821 0 0020.885 3.515z"/>
               </svg>
             </div>
-            <h2 className="text-2xl font-bold mb-1">WhatsApp Status</h2>
+            <h2 className="text-2xl font-bold mb-1">Status do BOT-Orçamento</h2>
             <p className="text-white/90 text-sm">
               {whatsConnected ? '✓ Conectado e funcionando' : '⏳ Aguardando conexão'}
             </p>
@@ -58,8 +113,12 @@ export function WhatsModal({ show, onClose, whatsConnected, qr, message, onRecon
                   <span className="font-semibold">Conexão estabelecida!</span>
                 </div>
                 <p className="text-sm text-green-600 dark:text-green-400">
-                  O WhatsApp está conectado e pronto para enviar orçamentos.
+                  O BOT-Orçamento está conectado e pronto para enviar orçamentos.
                 </p>
+                <div className="mt-4 text-xs bg-green-100 dark:bg-green-800/40 p-2 rounded-lg text-green-700 dark:text-green-300">
+                  <p className="font-medium">Importante:</p>
+                  <p>Se você não consegue ver seus contatos, verifique se existem conversas recentes no WhatsApp.</p>
+                </div>
               </div>
             </div>
           ) : qr ? (
@@ -81,6 +140,10 @@ export function WhatsModal({ show, onClose, whatsConnected, qr, message, onRecon
                 <p className="text-sm text-green-600 dark:text-green-400">
                   Abra o WhatsApp no seu celular e escaneie este código para conectar.
                 </p>
+                <div className="mt-4 text-xs bg-green-100 dark:bg-green-800/40 p-2 rounded-lg text-green-700 dark:text-green-300">
+                  <p className="font-medium">Dica:</p>
+                  <p>Se tiver problemas com a conexão, tente fechar o WhatsApp no celular e abrir novamente antes de escanear.</p>
+                </div>
               </div>
             </div>
           ) : (
@@ -93,19 +156,23 @@ export function WhatsModal({ show, onClose, whatsConnected, qr, message, onRecon
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                   </div>
-                  <p className="text-muted-foreground font-medium">Gerando QR Code...</p>
+                  <p className="text-muted-foreground font-medium">Inicializando...</p>
                 </div>
               </div>
-              <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-700/50">
-                <div className="flex items-center justify-center gap-2 text-green-700 dark:text-green-300 mb-2">
+              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-700/50">
+                <div className="flex items-center justify-center gap-2 text-blue-700 dark:text-blue-300 mb-2">
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                   </svg>
                   <span className="font-semibold">Preparando conexão</span>
                 </div>
-                <p className="text-sm text-green-600 dark:text-green-400">
-                  Aguarde enquanto geramos o código QR para conexão.
+                <p className="text-sm text-blue-600 dark:text-blue-400">
+                  Aguarde enquanto inicializamos o serviço do WhatsApp. Em breve o código QR será exibido.
                 </p>
+                <div className="mt-4 text-xs bg-blue-100 dark:bg-blue-800/40 p-2 rounded-lg text-blue-700 dark:text-blue-300">
+                  <p className="font-medium">Informação:</p>
+                  <p>Este processo pode levar até 30 segundos. Se demorar mais que isso, tente clicar em "Reconectar".</p>
+                </div>
               </div>
             </div>
           )}
@@ -113,6 +180,17 @@ export function WhatsModal({ show, onClose, whatsConnected, qr, message, onRecon
           {message && (
             <div className="mt-6 p-4 bg-muted rounded-xl border border-border text-center">
               <p className="text-sm font-medium text-foreground">{message}</p>
+            </div>
+          )}
+          
+          {reconnectStatus && (
+            <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-700/50 text-center animate-pulse">
+              <div className="flex items-center justify-center gap-2 text-blue-700 dark:text-blue-300">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <p className="text-sm font-medium">{reconnectStatus}</p>
+              </div>
             </div>
           )}
           
@@ -126,14 +204,27 @@ export function WhatsModal({ show, onClose, whatsConnected, qr, message, onRecon
             </button>
             {!whatsConnected && (
               <button
-                className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105"
-                onClick={onReconnect}
-                title="Reconectar WhatsApp"
+                className="flex-1 px-6 py-3 rounded-xl bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold transition-all duration-200 flex items-center justify-center gap-2 shadow-lg hover:shadow-xl transform hover:scale-105 disabled:opacity-70 disabled:transform-none disabled:hover:shadow-lg"
+                onClick={handleReconnect}
+                disabled={isReconnecting}
+                title={isReconnecting ? "Reconectando..." : "Reconectar WhatsApp"}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Reconectar
+                {isReconnecting ? (
+                  <>
+                    <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Reconectando...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Reconectar
+                  </>
+                )}
               </button>
             )}
           </div>

@@ -3,7 +3,7 @@ import { OrcamentoPage } from "./page/orcamentos/";
 import { ProdutosCrudPage } from "./page/produtos";
 import { OrcamentosEnviadosPage } from "./page/enviados";
 import check from "./check.svg";
-
+import { io, Socket } from "socket.io-client";
 import { Routes, Route } from "react-router-dom";
 
 import { WhatsModal } from "./components/WhatsModal";
@@ -11,10 +11,24 @@ import { Navbar } from "./components/Navbar";
 import { Sidebar } from "./components/Sidebar";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
+// Tipos para o Socket
+interface ServerToClientEvents {
+  qr: (data: string) => void;
+  message: (msg: string) => void;
+  connected: () => void;
+  authenticated: (msg: string) => void;
+  ready: (msg: string) => void;
+  statusOrcamento: (data: { status: string; mensagem: string }) => void;
+}
+
+interface ClientToServerEvents {
+  clientReady: () => void;
+  enviarOrcamento: (data: any) => void;
+}
 
 export function App() {
   // Refs para prevenir atualizações desnecessárias
-  const socketRef = useRef<any>(null);
+  const socketRef = useRef<Socket<ServerToClientEvents, ClientToServerEvents> | null>(null);
   
   // Estado para sidebar
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -40,6 +54,7 @@ export function App() {
   // Estado para materiais e acabamentos vindos do backend
   const [materiais, setMateriais] = useState<{ nome: string; preco: number }[]>([]);
   const [acabamentos, setAcabamentos] = useState<{ nome: string; preco: number }[]>([]);
+  
   // Buscar materiais e acabamentos do backend
   useEffect(() => {
     fetch("/api/config")
@@ -47,49 +62,74 @@ export function App() {
       .then((data) => {
         setMateriais(data.materiais || []);
         setAcabamentos(data.acabamentos || []);
-      });
+      })
+      .catch(err => console.error("Erro ao buscar configurações:", err));
   }, []);
 
   // Conexão com socket.io - usando uma abordagem mais estável com useEffect
   useEffect(() => {
-    // Usando require fora do corpo da função para evitar imports dinâmicos
-    const io = require("socket.io-client");
-    
     // Criamos a instância do socket apenas uma vez e armazenamos na ref
     const socket = io("http://localhost:3001");
-    socketRef.current = socket;
+    socketRef.current = socket as Socket<ServerToClientEvents, ClientToServerEvents>;
     
     // Configurando os event listeners
     socket.on("qr", (data: string) => {
+      console.log("QR recebido", data.substring(0, 20) + "...");
       setQr(data);
+      
+      // Se o QR não for o check.svg, então o WhatsApp não está conectado
+      if (data !== check) {
+        setWhatsConnected(false);
+      }
     });
     
     socket.on("message", (msg: string) => {
+      console.log("Mensagem recebida:", msg);
       setMessage(msg);
     });
     
     socket.on("connected", () => {
+      console.log("WhatsApp conectado (evento connected)");
       setWhatsConnected(true);
       setQr(check);
-      setMessage("WhatsApp conectado com sucesso!");
+      setMessage("© BOT-Orçamento - Dispositivo conectado!");
+    });
+    
+    socket.on("authenticated", (msg: string) => {
+      console.log("WhatsApp autenticado:", msg);
+      // Não definimos whatsConnected como true aqui, apenas no ready
+      setMessage(msg);
+    });
+    
+    socket.on("ready", (msg: string) => {
+      console.log("WhatsApp pronto (evento ready):", msg);
+      setWhatsConnected(true);
+      setQr(check);
+      setMessage(msg || "© BOT-Orçamento - Dispositivo pronto e operacional!");
     });
     
     socket.on("statusOrcamento", (res: any) => {
-      setStatusEnvio(res.status === "enviado" ? "Orçamento enviado com sucesso!" : "Falha ao enviar orçamento.");
+      console.log("Status do orçamento:", res);
+      setStatusEnvio(res.status === "enviado" ? res.mensagem : `Falha: ${res.mensagem}`);
       setLoading(false);
     });
     
     // Avisa o servidor que o cliente está pronto
     socket.emit("clientReady");
     
+    console.log("Socket.IO conectado");
+    
     // Cleanup function para remover event listeners e desconectar socket
     return () => {
       socket.off("qr");
       socket.off("message");
       socket.off("connected");
+      socket.off("authenticated");
+      socket.off("ready");
       socket.off("statusOrcamento");
       socket.disconnect();
       socketRef.current = null;
+      console.log("Socket.IO desconectado");
     };
   }, []); // Array vazio = executar apenas uma vez na montagem
 
@@ -142,50 +182,40 @@ export function App() {
   }
 
   // Otimizado com useCallback para evitar recriações desnecessárias
-  const handleReconnect = useCallback(async () => {
-    // Definindo estados usando valores diretos, não closures
-    setWhatsConnected(false);
-    setQr(null);
-    setMessage("Reconectando WhatsApp...");
-    
+  const handleReconnect = useCallback(async (): Promise<void> => {
     try {
-      const response = await fetch("/api/reconnect-bot", { method: "POST" });
+      // Definindo estados usando valores diretos, não closures
+      setWhatsConnected(false);
+      setQr(null);
+      setMessage("© BOT-Orçamento - Reconectando WhatsApp...");
+      
+      console.log("Iniciando processo de reconexão do WhatsApp...");
+      
+      // Fazemos a solicitação para reconectar o bot
+      const response = await fetch("/api/reconnect-bot", { 
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache, no-store, must-revalidate"
+        }
+      });
       
       if (!response.ok) {
-        throw new Error("Falha na requisição de reconexão");
+        const errorText = await response.text();
+        console.error("Falha na requisição de reconexão:", errorText);
+        setMessage(`© BOT-Orçamento - Falha na reconexão: ${response.statusText}`);
+        throw new Error(`Falha na requisição de reconexão: ${response.status}`);
       }
       
-      // Usamos um setTimeout para verificar o status depois
-      // mas não dependemos dos valores de estado no momento da criação da callback
-      setTimeout(async () => {
-        try {
-          const statusResponse = await fetch("/api/bot-status");
-          
-          // Verifica se a resposta foi bem-sucedida antes de tentar fazer o parse do JSON
-          if (!statusResponse.ok) {
-            throw new Error(`API respondeu com status ${statusResponse.status}`);
-          }
-          
-          // Verifica o tipo de conteúdo da resposta
-          const contentType = statusResponse.headers.get("content-type");
-          if (!contentType || !contentType.includes("application/json")) {
-            throw new Error(`Resposta não é JSON: ${contentType}`);
-          }
-          
-          const status = await statusResponse.json();
-          
-          // Aqui não usamos os valores de closure, mas sim os novos dados da API
-          if (!status.connected) {
-            setMessage("Falha ao reconectar. Tente novamente.");
-          }
-        } catch (error) {
-          console.error("Erro ao verificar status:", error);
-          setMessage("Erro ao verificar status. Tente novamente.");
-        }
-      }, 10000);
+      const data = await response.json();
+      console.log("Solicitação de reconexão enviada com sucesso:", data);
+      setMessage("© BOT-Orçamento - Reiniciando. Aguarde o código QR...");
+      
+      // Não precisamos fazer mais nada aqui, os eventos do socket
+      // irão atualizar os estados da interface automaticamente
     } catch (error) {
       console.error("Erro ao reconectar:", error);
-      setMessage("Erro ao tentar reconectar. Tente novamente.");
+      setMessage(`© BOT-Orçamento - Erro ao tentar reconectar: ${error instanceof Error ? error.message : String(error)}`);
     }
   }, []); // Sem dependências para evitar recriações
 

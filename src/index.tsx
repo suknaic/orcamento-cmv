@@ -22,7 +22,7 @@ const server = serve({
     "/api/contatos": {
       async GET(req) {
         const mod = await import("./api/contatos.ts");
-        return mod.default.GET(req);
+        return mod.GET(req);
       },
     },
 
@@ -30,14 +30,14 @@ const server = serve({
     "/api/enviarMensagem": {
       async POST(req) {
         const mod = await import("./api/enviarMensagem.ts");
-        return mod.default.POST(req);
+        return mod.POST(req);
       },
     },
 
     "/api/enviarPDF": {
       async POST(req) {
-        const mod = await import("./api/enviarMensagemComPdf.ts")
-        return mod.default.POST(req);
+        const mod = await import("./api/enviarPDF.ts");
+        return mod.POST(req);
       },
     },
 

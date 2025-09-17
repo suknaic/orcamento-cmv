@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
+import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
 import type { ItemOrcamento } from '@/lib/models/orcamento.models';
 import { OrcamentoService } from '@/lib/services/orcamento.service';
@@ -290,16 +290,65 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => setCopiado(false), 1500);
   };
 
-  const enviarWhatsApp = async () => {
+  // Função para enviar orçamento por WhatsApp
+  const enviarWhatsApp = useCallback(async () => {
     try {
-      const res = await fetch("/api/contatos");
-      const lista = await res.json();
-      setContatos(lista);
-      setShowModal(true);
-    } catch (e) {
-      toast.error("Erro ao buscar contatos: " + e);
+      setLoadingEnviar(true);
+      console.log("[OrcamentoContext] Verificando status do bot antes de exibir contatos...");
+      
+      // Verificar status do bot usando fetch
+      const resStatus = await fetch('/api/bot-status');
+      const statusData = await resStatus.json();
+      console.log("[OrcamentoContext] Status do bot:", statusData);
+      
+      if (!statusData.connected) {
+        toast.error(
+          "O bot do WhatsApp não está conectado. Verifique a conexão no painel de WhatsApp.",
+          { toastId: "whatsapp-not-connected" }
+        );
+        setLoadingEnviar(false);
+        return;
+      }
+      
+      console.log("[OrcamentoContext] Bot conectado, buscando contatos...");
+      
+      // Obter contatos, evitando cache
+      const timestamp = new Date().getTime();
+      const resContatos = await fetch(`/api/contatos?t=${timestamp}`, {
+        headers: {
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        }
+      });
+      
+      const contatosData = await resContatos.json();
+      console.log("[OrcamentoContext] Resposta da API de contatos:", contatosData);
+      
+      if (contatosData.contatos && Array.isArray(contatosData.contatos)) {
+        setContatos(contatosData.contatos);
+        setShowModal(true);
+        
+        if (contatosData.contatos.length === 0) {
+          toast.info(
+            "Nenhum contato encontrado. Interaja com alguns contatos no WhatsApp primeiro.",
+            { autoClose: 5000 }
+          );
+        }
+      } else {
+        console.error("[OrcamentoContext] Formato inesperado na resposta da API:", contatosData);
+        toast.error("Erro ao carregar contatos. Verifique o console para mais detalhes.");
+      }
+    } catch (error) {
+      console.error("[OrcamentoContext] Erro ao enviar por WhatsApp:", error);
+      
+      // Mensagem de erro mais específica
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+      toast.error(`Erro ao carregar contatos: ${errorMessage}`);
+    } finally {
+      setLoadingEnviar(false);
     }
-  };
+  }, [setContatos, setShowModal, setLoadingEnviar]);
 
   const confirmarEnvioMensagem = () => {
     if (contatosSelecionados.length === 0) return;
