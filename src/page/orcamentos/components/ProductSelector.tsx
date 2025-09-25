@@ -85,56 +85,62 @@ function ComponenteEditor({ item, itemIndex, atualizarItem }: { item: ItemOrcame
     <div className="mt-4 space-y-3 pl-8 border-l-2 border-dashed border-border ml-4">
       {item.componentes.map((componente) => (
         <div key={componente.id} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-center bg-background/50 p-2 rounded-md">
-          <div className="md:col-span-4">
+          <div className="md:col-span-4 flex flex-col">
+            <label className="mb-1 text-xs text-muted-foreground">Descrição</label>
             <input
               type="text"
-              className="border border-input rounded-md px-2 py-1.5 w-full text-sm"
+              className="border border-input rounded-md px-4 py-3 w-full text-base"
               placeholder="Descrição (ex: Frente)"
               value={componente.descricao}
               onChange={(e) => atualizarComponente(componente.id, 'descricao', e.target.value)}
             />
           </div>
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 flex flex-col">
+            <label className="mb-1 text-xs text-muted-foreground">Largura</label>
             <input
               type="number"
               min={0}
               step={0.01}
-              className="border border-input rounded-md px-2 py-1.5 w-full text-sm"
+              className="border border-input rounded-md px-4 py-3 w-full text-base"
               placeholder="Largura"
               value={componente.largura}
               onChange={(e) => atualizarComponente(componente.id, 'largura', e.target.value)}
             />
           </div>
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 flex flex-col">
+            <label className="mb-1 text-xs text-muted-foreground">Altura</label>
             <input
               type="number"
               min={0}
               step={0.01}
-              className="border border-input rounded-md px-2 py-1.5 w-full text-sm"
+              className="border border-input rounded-md px-4 py-3 w-full text-base"
               placeholder="Altura"
               value={componente.altura}
               onChange={(e) => atualizarComponente(componente.id, 'altura', e.target.value)}
             />
           </div>
-          <div className="md:col-span-2">
+          <div className="md:col-span-2 flex flex-col">
+            <label className="mb-1 text-xs text-muted-foreground">Qtd</label>
             <input
               type="number"
               min={1}
               step={1}
-              className="border border-input rounded-md px-2 py-1.5 w-full text-sm"
+              className="border border-input rounded-md px-4 py-3 w-full text-base"
               placeholder="Qtd"
               value={componente.quantidade}
               onChange={(e) => atualizarComponente(componente.id, 'quantidade', e.target.value)}
             />
           </div>
-          <div className="md:col-span-2 flex justify-end">
+          <div className="md:col-span-2 flex justify-end mt-5">
             <button
               type="button"
-              className="text-destructive/70 hover:text-destructive hover:bg-destructive/10 rounded-md p-1.5"
+              className="text-destructive/80 hover:text-destructive bg-destructive/10 hover:bg-destructive/20 rounded-lg p-3 transition-colors shadow-md"
               title="Remover medida"
               onClick={() => removerComponente(componente.id)}
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
             </button>
           </div>
         </div>

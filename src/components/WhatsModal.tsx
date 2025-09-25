@@ -24,12 +24,13 @@ export function WhatsModal({ show, onClose, whatsConnected, qr, message, onRecon
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          "Cache-Control": "no-cache, no-store, must-revalidate"
         },
       });
       
       const data = await response.json();
       
-      if (response.ok && data.ok) {
+      if (response.ok && (data.ok || data.success)) {
         setReconnectStatus("Reconexão iniciada com sucesso! Aguardando WhatsApp conectar...");
         
         // Chamamos também o onReconnect para garantir que o componente pai seja notificado
@@ -44,7 +45,8 @@ export function WhatsModal({ show, onClose, whatsConnected, qr, message, onRecon
           setTimeout(() => setReconnectStatus(null), 5000);
         }, 15000);
       } else {
-        setReconnectStatus(`Falha na reconexão: ${data.message || "Erro desconhecido"}`);
+        const errorMsg = data.error || data.message || "Erro desconhecido";
+        setReconnectStatus(`Falha na reconexão: ${errorMsg}`);
         setTimeout(() => {
           setIsReconnecting(false);
           
@@ -54,7 +56,8 @@ export function WhatsModal({ show, onClose, whatsConnected, qr, message, onRecon
       }
     } catch (error) {
       console.error("Erro ao reconectar WhatsApp:", error);
-      setReconnectStatus("Erro ao tentar reconectar. Tente novamente.");
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      setReconnectStatus(`Erro ao tentar reconectar: ${errorMessage}`);
       setTimeout(() => {
         setIsReconnecting(false);
         
@@ -121,14 +124,23 @@ export function WhatsModal({ show, onClose, whatsConnected, qr, message, onRecon
                 </div>
               </div>
             </div>
-          ) : qr ? (
+          ) : qr && (qr !== './icon.svg') ? (
             <div className="text-center">
               <div className="w-64 h-64 mx-auto mb-6 bg-card border-4 border-border rounded-2xl shadow-lg p-4 flex items-center justify-center">
-                <img
-                  src={qr}
-                  alt="QR Code do WhatsApp"
-                  className="w-full h-full object-contain rounded-lg"
-                />
+                {qr.startsWith('data:image') ? (
+                  <img
+                    src={qr}
+                    alt="QR Code do WhatsApp"
+                    className="w-full h-full object-contain rounded-lg"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-muted-foreground">
+                    <svg className="w-12 h-12 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1v-2a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                    </svg>
+                    <p>QR Code inválido</p>
+                  </div>
+                )}
               </div>
               <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-700/50">
                 <div className="flex items-center justify-center gap-2 text-green-700 dark:text-green-300 mb-2">

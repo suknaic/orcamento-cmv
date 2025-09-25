@@ -60,3 +60,5 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 # whasapp cache e auth
 .wwebjs_auth
 .wwebjs_cache
+.tokens
+.tokens/*

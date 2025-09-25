@@ -3,11 +3,22 @@ import { bot } from '../bot';
 export const GET = async () => {
   try {
     console.log("Verificando status do bot WhatsApp...");
-    const status = await bot.isConnected();
-    console.log(`Status do bot: ${status.connected ? "Conectado" : "Desconectado"}`);
+    
+    // Obter verificação de conexão simples
+    const isConnected = await bot.isConnected();
+    console.log(`Status do bot: ${isConnected ? "Conectado" : "Desconectado"}`);
+    
+    // Obter informações detalhadas do status da conexão
+    const connectionStatus = await bot.getConnectionStatus();
+    console.log("Status detalhado:", connectionStatus);
     
     return new Response(
-      JSON.stringify(status),
+      JSON.stringify({
+        connected: isConnected,
+        status: isConnected ? "connected" : "disconnected",
+        details: connectionStatus,
+        timestamp: new Date().toISOString()
+      }),
       { 
         status: 200,
         headers: {

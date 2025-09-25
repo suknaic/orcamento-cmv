@@ -22,7 +22,24 @@ const server = serve({
     "/api/contatos": {
       async GET(req) {
         const mod = await import("./api/contatos.ts");
-        return mod.GET(req);
+        if (typeof mod.GET === 'function') {
+          return mod.GET(req);
+        } else {
+          console.error("API Error: contatos.ts não exporta uma função GET");
+          return new Response(
+            JSON.stringify({ 
+              error: "API Error: Erro interno do servidor",
+              timestamp: new Date().toISOString() 
+            }), 
+            {
+              status: 500,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+              }
+            }
+          );
+        }
       },
     },
 
@@ -30,28 +47,100 @@ const server = serve({
     "/api/enviarMensagem": {
       async POST(req) {
         const mod = await import("./api/enviarMensagem.ts");
-        return mod.POST(req);
+        if (typeof mod.POST === 'function') {
+          return mod.POST(req);
+        } else {
+          console.error("API Error: enviarMensagem.ts não exporta uma função POST");
+          return new Response(
+            JSON.stringify({ 
+              ok: false,
+              error: "API Error: Erro interno do servidor",
+              timestamp: new Date().toISOString() 
+            }), 
+            {
+              status: 500,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+              }
+            }
+          );
+        }
       },
     },
 
     "/api/enviarPDF": {
       async POST(req) {
         const mod = await import("./api/enviarPDF.ts");
-        return mod.POST(req);
+        if (typeof mod.POST === 'function') {
+          return mod.POST(req);
+        } else {
+          console.error("API Error: enviarPDF.ts não exporta uma função POST");
+          return new Response(
+            JSON.stringify({ 
+              ok: false,
+              error: "API Error: Erro interno do servidor",
+              timestamp: new Date().toISOString() 
+            }), 
+            {
+              status: 500,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+              }
+            }
+          );
+        }
       },
     },
 
     "/api/reconnect-bot": {
       async POST(req) {
         const mod = await import("./api/reconnect-bot.ts");
-        return mod.POST();
+        if (typeof mod.POST === 'function') {
+          return mod.POST();
+        } else {
+          console.error("API Error: reconnect-bot.ts não exporta uma função POST");
+          return new Response(
+            JSON.stringify({ 
+              ok: false,
+              error: "API Error: Erro interno do servidor",
+              timestamp: new Date().toISOString() 
+            }), 
+            {
+              status: 500,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+              }
+            }
+          );
+        }
       },
     },
 
     "/api/bot-status": {
       async GET(req) {
         const mod = await import("./api/bot-status.ts");
-        return mod.GET();
+        if (typeof mod.GET === 'function') {
+          return mod.GET();
+        } else {
+          console.error("API Error: bot-status.ts não exporta uma função GET");
+          return new Response(
+            JSON.stringify({ 
+              ok: false,
+              error: "API Error: Erro interno do servidor",
+              timestamp: new Date().toISOString() 
+            }), 
+            {
+              status: 500,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+              }
+            }
+          );
+        }
       },
     },
 
@@ -59,19 +148,91 @@ const server = serve({
     "/api/orcamentosEnviados": {
       async GET(req) {
         const mod = await import("./api/orcamentosEnviados.ts");
-        return mod.default.GET(req);
+        if (mod.default && typeof mod.default.GET === 'function') {
+          return mod.default.GET(req);
+        } else {
+          console.error("API Error: orcamentosEnviados.ts não exporta uma função GET");
+          return new Response(
+            JSON.stringify({ 
+              ok: false,
+              error: "API Error: Erro interno do servidor",
+              timestamp: new Date().toISOString() 
+            }), 
+            {
+              status: 500,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+              }
+            }
+          );
+        }
       },
       async POST(req) {
         const mod = await import("./api/orcamentosEnviados.ts");
-        return mod.default.POST(req);
+        if (mod.default && typeof mod.default.POST === 'function') {
+          return mod.default.POST(req);
+        } else {
+          console.error("API Error: orcamentosEnviados.ts não exporta uma função POST");
+          return new Response(
+            JSON.stringify({ 
+              ok: false,
+              error: "API Error: Erro interno do servidor",
+              timestamp: new Date().toISOString() 
+            }), 
+            {
+              status: 500,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+              }
+            }
+          );
+        }
       },
       async PUT(req) {
         const mod = await import("./api/orcamentosEnviados.ts");
-        return mod.default.PUT(req);
+        if (mod.default && typeof mod.default.PUT === 'function') {
+          return mod.default.PUT(req);
+        } else {
+          console.error("API Error: orcamentosEnviados.ts não exporta uma função PUT");
+          return new Response(
+            JSON.stringify({ 
+              ok: false,
+              error: "API Error: Erro interno do servidor",
+              timestamp: new Date().toISOString() 
+            }), 
+            {
+              status: 500,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+              }
+            }
+          );
+        }
       },
       async OPTIONS(req) {
         const mod = await import("./api/orcamentosEnviados.ts");
-        return mod.default.OPTIONS(req);
+        if (mod.default && typeof mod.default.OPTIONS === 'function') {
+          return mod.default.OPTIONS(req);
+        } else {
+          console.error("API Error: orcamentosEnviados.ts não exporta uma função OPTIONS");
+          return new Response(
+            JSON.stringify({ 
+              ok: false,
+              error: "API Error: Erro interno do servidor",
+              timestamp: new Date().toISOString() 
+            }), 
+            {
+              status: 500,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+              }
+            }
+          );
+        }
       },
     },
 
@@ -79,7 +240,25 @@ const server = serve({
     "/api/reenviarOrcamento": {
       async POST(req) {
         const mod = await import("./api/reenviarOrcamento.ts");
-        return mod.default.POST(req);
+        if (mod.default && typeof mod.default.POST === 'function') {
+          return mod.default.POST(req);
+        } else {
+          console.error("API Error: reenviarOrcamento.ts não exporta uma função POST");
+          return new Response(
+            JSON.stringify({ 
+              ok: false,
+              error: "API Error: Erro interno do servidor",
+              timestamp: new Date().toISOString() 
+            }), 
+            {
+              status: 500,
+              headers: { 
+                'Content-Type': 'application/json',
+                'Cache-Control': 'no-cache, no-store, must-revalidate'
+              }
+            }
+          );
+        }
       },
     }
   },

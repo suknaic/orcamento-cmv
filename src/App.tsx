@@ -74,12 +74,14 @@ export function App() {
     
     // Configurando os event listeners
     socket.on("qr", (data: string) => {
-      console.log("QR recebido", data.substring(0, 20) + "...");
+      console.log("QR recebido", typeof data === 'string' && data.length > 20 ? data.substring(0, 20) + "..." : data);
       setQr(data);
       
       // Se o QR não for o check.svg, então o WhatsApp não está conectado
-      if (data !== check) {
+      if (data !== check && !data.includes('check.svg')) {
         setWhatsConnected(false);
+      } else {
+        setWhatsConnected(true);
       }
     });
     
@@ -113,6 +115,18 @@ export function App() {
       setStatusEnvio(res.status === "enviado" ? res.mensagem : `Falha: ${res.mensagem}`);
       setLoading(false);
     });
+    
+    // Verificar status inicial do bot
+    fetch("/api/bot-status")
+      .then(res => res.json())
+      .then(data => {
+        if (data.connected) {
+          setWhatsConnected(true);
+          setQr(check);
+          setMessage("© BOT-Orçamento - Dispositivo conectado!");
+        }
+      })
+      .catch(err => console.error("Erro ao verificar status do bot:", err));
     
     // Avisa o servidor que o cliente está pronto
     socket.emit("clientReady");
