@@ -1,44 +1,47 @@
+import { getChats } from '../bot';
 
-import { bot } from '../bot';
+export const GET = async (req: Request) => {
+  console.log("Recebida requisição para /api/contatos");
 
-export async function GET(req: Request) {
+  // Headers para evitar cache
+  const headers = {
+    'Content-Type': 'application/json',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Pragma': 'no-cache',
+    'Expires': '0',
+  };
+
   try {
-    console.log("API: Buscando chats individuais do WhatsApp...");
-    const chatsIndividuais = await bot.getChatsIndividuais();
-    console.log(`API: Encontrados ${chatsIndividuais.length} chats`);
-    
-    // Como o bot.getChatsIndividuais() já retorna os contatos no formato correto,
-    // não precisamos mais fazer o mapeamento aqui
-    
-    return new Response(
-      JSON.stringify({ 
-        contatos: chatsIndividuais,
-        timestamp: new Date().toISOString() 
-      }), 
-      {
-        status: 200,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate'
-        }
+    const chats = await getChats();
+    console.log(`Encontrados ${chats.length} chats.`);
+
+    const contatosPromises = chats.map(async (chat: any) => {
+      try {
+        // Obtém o objeto Contact associado ao chat
+        const contato = await chat.getContact();
+
+        const nome = contato.name || contato.pushname || chat.name || chat.id.user;
+
+        return {
+          nome: nome,
+          numero: chat.id.user
+        };
+      } catch (error) {
+        console.error(`Erro ao processar o chat ${chat.id.user}:`, error);
+        return {
+          nome: chat.name || chat.id.user, // Fallback em caso de erro
+          numero: chat.id.user
+        };
       }
-    );
+    });
+
+    const contatos = (await Promise.all(contatosPromises)).filter(Boolean); // .filter(Boolean) remove nulos
+
+    console.log(`Retornando ${contatos.length} contatos formatados.`);
+    return new Response(JSON.stringify({ contatos }), { status: 200, headers });
+
   } catch (error) {
-    console.error("API: Erro ao obter contatos do WhatsApp:", error);
-    
-    return new Response(
-      JSON.stringify({ 
-        error: error instanceof Error ? error.message : String(error),
-        contatos: [],
-        timestamp: new Date().toISOString() 
-      }), 
-      {
-        status: 500,
-        headers: { 
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache, no-store, must-revalidate'
-        }
-      }
-    );
+    console.error('Erro ao buscar contatos:', error);
+    return new Response(JSON.stringify({ error: 'Falha ao buscar contatos do WhatsApp' }), { status: 500, headers });
   }
-}
+};

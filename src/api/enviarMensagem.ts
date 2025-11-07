@@ -1,26 +1,11 @@
-import { bot } from '../bot';
+import { sendOrcamento } from '../bot';
 import db from '../lib/db';
 
-export const POST = async (req: Request) => {
-  console.log("Iniciando processamento de envio de mensagem WhatsApp");
-
-  const headers = {
-    'Content-Type': 'application/json',
-    'Cache-Control': 'no-cache, no-store, must-revalidate'
-  };
-
+export async function POST(req: Request) {
   try {
-    const { numeros, mensagem, cliente_nome, produtos, valor_total } = await req.json();
-    console.log(`Processando envio para ${cliente_nome}, valor: ${valor_total}, números: ${numeros?.length || 0}`);
-    
-    if (!Array.isArray(numeros) || !mensagem) {
-      console.error("Dados inválidos:", { temNumeros: Array.isArray(numeros), temMensagem: !!mensagem });
-      return new Response(JSON.stringify({ ok: false, error: 'Dados inválidos' }), {
-        status: 400,
-        headers
-      });
-    }
-    const resultados = [];
+    const body = await req.json();
+    const { numeros, mensagem, numero, cliente_nome, produtos, valor_total } = body;
+
     // Rodapé fixo
     const rodape = [
       'CNPJ: 52.548.924/0001-20',
@@ -32,62 +17,70 @@ export const POST = async (req: Request) => {
     ];
 
     const dadosBancarios = [
-        'PIX 6899976-0124',
-        'BANCO DO BRASIL',
-        'AG. 2358-2',
-        'CC. 108822-X'
+      'PIX 6899976-0124',
+      'BANCO DO BRASIL',
+      'AG. 2358-2',
+      'CC. 108822-X'
     ];
-    
+
+    // Adiciona rodapé ao final da mensagem
+    const mensagemFinal = `${mensagem}\n\n${rodape.join("\n")}\n\n${dadosBancarios.join("\n")}`;
+
+    const numerosParaEnvio = numero ? [numero] : (Array.isArray(numeros) ? numeros : []);
+
+    if (numerosParaEnvio.length === 0) {
+      throw new Error('É necessário fornecer um número ou array de números');
+    }
+
     // Salvar orçamento no banco antes de enviar
-    let orcamentoId = null;
-    if (cliente_nome && produtos && valor_total) {
+    let orcamentoId: number | bigint | null = null;
+    if (cliente_nome && produtos && valor_total > 0) {
       try {
-        console.log("Tentando salvar orçamento no banco");
-        // Garantir que o nome do cliente não seja genérico
-        const nomeReal = cliente_nome === 'Cliente' ? 'Cliente Desconhecido' : cliente_nome;
-        
+        console.log("Tentando salvar orçamento de texto no banco");
+
+        // O nome do cliente agora é recebido diretamente e é a fonte da verdade.
+        const nomeFinal = cliente_nome;
+
         db.run('BEGIN TRANSACTION');
         const result = db.prepare(`
-          INSERT INTO orcamentos_enviados 
+          INSERT INTO orcamentos_enviados
           (cliente_nome, cliente_numero, produtos, valor_total, tipo_envio, status)
           VALUES (?, ?, ?, ?, ?, ?)
         `).run(
-          nomeReal,
-          numeros[0] || null, // Primeiro número como principal
+          nomeFinal,
+          numerosParaEnvio[0] || null,
           JSON.stringify(produtos),
           valor_total,
-          'whatsapp_mensagem',
+          'whatsapp_texto',
           'enviando'
         );
+
         orcamentoId = result.lastInsertRowid;
-        console.log(`Orçamento salvo com ID: ${orcamentoId}`);
+        console.log(`Orçamento (texto) salvo com ID: ${orcamentoId}`);
         db.run('COMMIT');
       } catch (e) {
         db.run('ROLLBACK');
-        console.error('Erro ao salvar orçamento:', e);
+        console.error('Erro ao salvar orçamento (texto) no banco:', e);
+        // Não impede o envio, mas loga o erro.
       }
     } else {
-      console.warn("Dados insuficientes para salvar orçamento:", { 
-        temCliente: !!cliente_nome, 
-        temProdutos: !!produtos, 
-        valorTotal: valor_total 
+      console.warn("Dados insuficientes para salvar orçamento (texto):", {
+        temCliente: !!cliente_nome,
+        temProdutos: !!produtos,
+        valorTotal: valor_total
       });
     }
-    
-    for (const numero of numeros) {
+
+    const resultados = [];
+    for (const num of numerosParaEnvio) {
       try {
-        console.log(`Enviando mensagem para ${numero}`);
-        // Adiciona rodapé ao final da mensagem
-        const mensagemFinal = `${mensagem}\n\n${rodape.join("\n")}\n\n${dadosBancarios.join("\n")}`;
-        await bot.sendOrcamento(numero, mensagemFinal);
-        resultados.push({ numero, status: 'ok' });
-        console.log(`Envio para ${numero} concluído com sucesso`);
+        await sendOrcamento(num, mensagemFinal);
+        resultados.push({ numero: num, status: 'ok' });
       } catch (e) {
-        console.error(`Erro ao enviar para ${numero}:`, e);
-        resultados.push({ numero, status: 'erro', erro: String(e) });
+        resultados.push({ numero: num, status: 'erro', erro: String(e) });
       }
     }
-    
+
     // Atualizar status do orçamento após envio
     if (orcamentoId) {
       try {
@@ -95,7 +88,7 @@ export const POST = async (req: Request) => {
         const enviados = resultados.filter(r => r.status === 'ok').length;
         const status = enviados > 0 ? 'enviado' : 'erro_envio';
         db.prepare(`
-          UPDATE orcamentos_enviados 
+          UPDATE orcamentos_enviados
           SET status = ?, data_envio = CURRENT_TIMESTAMP
           WHERE id = ?
         `).run(status, orcamentoId);
@@ -106,18 +99,19 @@ export const POST = async (req: Request) => {
     } else {
       console.warn("Não foi possível atualizar o status pois o orçamento não foi salvo no banco");
     }
-    
+
+    // Permite envio para um único número ou um array de números
     return new Response(JSON.stringify({ ok: true, resultados, orcamentoId }), {
-      headers
+      headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error("Erro ao processar envio de mensagem:", error);
-    return new Response(JSON.stringify({ 
-      ok: false, 
-      error: error instanceof Error ? error.message : String(error)
+    console.error('Erro ao processar requisição:', error);
+    return new Response(JSON.stringify({
+      ok: false,
+      error: error instanceof Error ? error.message : 'Erro desconhecido'
     }), {
-      status: 500,
-      headers
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
     });
   }
-};
+}

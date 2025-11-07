@@ -2,12 +2,11 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { OrcamentoPage } from "./page/orcamentos/";
 import { ProdutosCrudPage } from "./page/produtos";
 import { OrcamentosEnviadosPage } from "./page/enviados";
-import check from "./check.svg";
+import check from "./assets/check.svg";
 import { io, Socket } from "socket.io-client";
 import { Routes, Route } from "react-router-dom";
 
 import { WhatsModal } from "./components/WhatsModal";
-import { Navbar } from "./components/Navbar";
 import { Sidebar } from "./components/Sidebar";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
@@ -19,11 +18,14 @@ interface ServerToClientEvents {
   authenticated: (msg: string) => void;
   ready: (msg: string) => void;
   statusOrcamento: (data: { status: string; mensagem: string }) => void;
+  'whatsapp-status': (isConnected: boolean) => void;
 }
 
 interface ClientToServerEvents {
   clientReady: () => void;
   enviarOrcamento: (data: any) => void;
+  'reconnect-bot': () => void;
+  'get-whatsapp-status': () => void; // Novo evento para solicitar status
 }
 
 export function App() {
@@ -76,13 +78,7 @@ export function App() {
     socket.on("qr", (data: string) => {
       console.log("QR recebido", typeof data === 'string' && data.length > 20 ? data.substring(0, 20) + "..." : data);
       setQr(data);
-      
-      // Se o QR não for o check.svg, então o WhatsApp não está conectado
-      if (data !== check && !data.includes('check.svg')) {
-        setWhatsConnected(false);
-      } else {
-        setWhatsConnected(true);
-      }
+      setWhatsConnected(false); // Certifica-se de que o status está como desconectado quando recebe um QR
     });
     
     socket.on("message", (msg: string) => {
@@ -91,7 +87,6 @@ export function App() {
     });
     
     socket.on("connected", () => {
-      console.log("WhatsApp conectado (evento connected)");
       setWhatsConnected(true);
       setQr(check);
       setMessage("© BOT-Orçamento - Dispositivo conectado!");
@@ -99,7 +94,6 @@ export function App() {
     
     socket.on("authenticated", (msg: string) => {
       console.log("WhatsApp autenticado:", msg);
-      // Não definimos whatsConnected como true aqui, apenas no ready
       setMessage(msg);
     });
     
@@ -116,22 +110,19 @@ export function App() {
       setLoading(false);
     });
     
-    // Verificar status inicial do bot
-    fetch("/api/bot-status")
-      .then(res => res.json())
-      .then(data => {
-        if (data.connected) {
-          setWhatsConnected(true);
-          setQr(check);
-          setMessage("© BOT-Orçamento - Dispositivo conectado!");
-        }
-      })
-      .catch(err => console.error("Erro ao verificar status do bot:", err));
-    
-    // Avisa o servidor que o cliente está pronto
-    socket.emit("clientReady");
+    socket.on("whatsapp-status", (isConnected: boolean) => {
+      console.log("Status do WhatsApp atualizado:", isConnected);
+      setWhatsConnected(isConnected);
+      // Se conectado, vamos garantir que o estado do qr reflita isso
+      if (isConnected) {
+        setQr(check); // Usando a importação do check.svg já existente
+      }
+    });
     
     console.log("Socket.IO conectado");
+    
+    // Quando conectar, solicitar o estado atual do WhatsApp
+    socket.emit("clientReady");
     
     // Cleanup function para remover event listeners e desconectar socket
     return () => {
@@ -141,6 +132,7 @@ export function App() {
       socket.off("authenticated");
       socket.off("ready");
       socket.off("statusOrcamento");
+      socket.off("whatsapp-status");
       socket.disconnect();
       socketRef.current = null;
       console.log("Socket.IO desconectado");
@@ -195,6 +187,17 @@ export function App() {
     }
   }
 
+  // Função para abrir o modal e verificar o status do WhatsApp
+  const openWhatsAppModal = useCallback(() => {
+    setShowWhatsModal(true);
+    
+    // Ao abrir o modal, solicitamos o status atual do WhatsApp
+    if (socketRef.current) {
+      console.log("Solicitando status atual do WhatsApp ao abrir modal");
+      socketRef.current.emit('get-whatsapp-status');
+    }
+  }, []);
+
   // Otimizado com useCallback para evitar recriações desnecessárias
   const handleReconnect = useCallback(async (): Promise<void> => {
     try {
@@ -205,7 +208,13 @@ export function App() {
       
       console.log("Iniciando processo de reconexão do WhatsApp...");
       
-      // Fazemos a solicitação para reconectar o bot
+      // Tentamos primeiro via socket, que é mais rápido
+      if (socketRef.current) {
+        socketRef.current.emit('reconnect-bot');
+        return; // Retornamos aqui pois os eventos do socket atualizarão a UI
+      }
+      
+      // Fallback para a API REST se o socket não estiver disponível
       const response = await fetch("/api/reconnect-bot", { 
         method: "POST",
         headers: {
@@ -225,23 +234,25 @@ export function App() {
       console.log("Solicitação de reconexão enviada com sucesso:", data);
       setMessage("© BOT-Orçamento - Reiniciando. Aguarde o código QR...");
       
-      // Não precisamos fazer mais nada aqui, os eventos do socket
-      // irão atualizar os estados da interface automaticamente
     } catch (error) {
       console.error("Erro ao reconectar:", error);
       setMessage(`© BOT-Orçamento - Erro ao tentar reconectar: ${error instanceof Error ? error.message : String(error)}`);
     }
-  }, []); // Sem dependências para evitar recriações
+  }, []);
+
+  // Referência para o sidebar para sabermos o estado colapsado
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <Sidebar isOpen={sidebarOpen} onToggle={setSidebarOpen} />
-      <div className="lg:pl-64 transition-all duration-300">
-        <Navbar 
-          onWhatsClick={() => setShowWhatsModal(true)} 
-          onSidebarToggle={() => setSidebarOpen(true)}
-        />
-        <div className="pt-20 bg-background">
+      <Sidebar 
+        isOpen={sidebarOpen} 
+        onToggle={setSidebarOpen} 
+        onCollapseChange={setSidebarCollapsed}
+        onWhatsClick={openWhatsAppModal} // Usar a nova função aqui
+      />
+      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:pl-16 lg:ml-0' : 'lg:pl-64'} mx-auto`}>
+        <div className={`py-6 bg-background max-w-7xl mx-auto px-4 sm:px-6 ${sidebarCollapsed ? 'lg:px-8' : ''}`}>
           <ErrorBoundary>
             <Routes>
               <Route path="/" element={<ErrorBoundary><OrcamentoPage /></ErrorBoundary>} />

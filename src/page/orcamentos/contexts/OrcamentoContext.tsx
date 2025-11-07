@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import { toast } from 'react-toastify';
-import type { ItemOrcamento } from '@/lib/models/orcamento.models';
 import { OrcamentoService } from '@/lib/services/orcamento.service';
+import type { ItemOrcamento } from '@/lib/models/orcamento.models';
 
 export interface ItemOrcamentoUI extends ItemOrcamento {
   _buscaMaterial?: string;
@@ -15,6 +15,11 @@ export interface InfoOrcamento {
   pagamento: string;
 }
 
+interface Contato {
+  nome: string;
+  numero: string;
+}
+
 interface OrcamentoContextType {
   // Estados dos produtos
   produtos: ItemOrcamentoUI[];
@@ -25,18 +30,19 @@ interface OrcamentoContextType {
   // Estados de modais e envios
   showModal: boolean;
   setShowModal: React.Dispatch<React.SetStateAction<boolean>>;
-  showInfoModal: false | "pdf";
-  setShowInfoModal: React.Dispatch<React.SetStateAction<false | "pdf">>;
-  showNomeModal: boolean;
-  setShowNomeModal: React.Dispatch<React.SetStateAction<boolean>>;
+  showInfoModal: boolean;
+  setShowInfoModal: React.Dispatch<React.SetStateAction<boolean>>;
   showConfirmaNomeModal: boolean;
   setShowConfirmaNomeModal: React.Dispatch<React.SetStateAction<boolean>>;
+  showContatosModal: boolean;
+  setShowContatosModal: React.Dispatch<React.SetStateAction<boolean>>;
+  tipoEnvio: 'texto' | 'pdf';
   
   // Estados de contatos
   contatos: any[];
   setContatos: React.Dispatch<React.SetStateAction<any[]>>;
-  contatosSelecionados: string[];
-  setContatosSelecionados: React.Dispatch<React.SetStateAction<string[]>>;
+  contatosSelecionados: Contato[];
+  setContatosSelecionados: React.Dispatch<React.SetStateAction<Contato[]>>;
   buscaContato: string;
   setBuscaContato: React.Dispatch<React.SetStateAction<string>>;
   
@@ -68,11 +74,11 @@ interface OrcamentoContextType {
   adicionarProduto: () => void;
   removerProduto: (index: number) => void;
   copiarOrcamento: () => void;
-  enviarWhatsApp: () => Promise<void>;
+  abrirModalContatos: (tipo: 'texto' | 'pdf') => Promise<void>;
   enviarPDFWhatsApp: () => Promise<void>;
   enviarMensagemWhatsApp: () => Promise<void>;
   confirmarEnvioMensagem: () => void;
-  handleCheckContato: (numero: string) => void;
+  handleCheckContato: (contato: Contato) => void;
   calcularDesconto: (valorTotal: number, desconto: string) => number;
 }
 
@@ -99,13 +105,14 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
   
   // Estados de modais
   const [showModal, setShowModal] = useState(false);
-  const [showInfoModal, setShowInfoModal] = useState<false | "pdf">(false);
-  const [showNomeModal, setShowNomeModal] = useState(false);
+  const [showInfoModal, setShowInfoModal] = useState(false);
   const [showConfirmaNomeModal, setShowConfirmaNomeModal] = useState(false);
-  
+  const [showContatosModal, setShowContatosModal] = useState(false);
+  const [tipoEnvio, setTipoEnvio] = useState<'texto' | 'pdf'>('texto');
+
   // Estados de contatos
   const [contatos, setContatos] = useState([]);
-  const [contatosSelecionados, setContatosSelecionados] = useState<string[]>([]);
+  const [contatosSelecionados, setContatosSelecionados] = useState<Contato[]>([]);
   const [buscaContato, setBuscaContato] = useState("");
   
   // Estados de loading
@@ -290,8 +297,9 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => setCopiado(false), 1500);
   };
 
-  // Função para enviar orçamento por WhatsApp
-  const enviarWhatsApp = useCallback(async () => {
+  // Função para abrir o modal de contatos, verificando a conexão e buscando a lista.
+  const abrirModalContatos = useCallback(async (tipo: 'texto' | 'pdf') => {
+    setTipoEnvio(tipo); // Define o tipo de envio para uso posterior
     try {
       setLoadingEnviar(true);
       console.log("[OrcamentoContext] Verificando status do bot antes de exibir contatos...");
@@ -350,12 +358,21 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
     }
   }, [setContatos, setShowModal, setLoadingEnviar]);
 
+  // Centraliza a lógica para obter o nome do cliente
+  const obterNomeClienteSelecionado = useCallback(() => {
+    // Prioridade:
+    // 1. Nome temporário (se o modal de confirmação foi usado).
+    // 2. Nome do primeiro contato selecionado no modal.
+    // 3. Nome digitado no campo "Cliente" da tela principal (fallback).
+    // 4. "Cliente" como valor padrão.    
+    const primeiroContato = contatosSelecionados[0];
+    return nomeTemporario || primeiroContato?.nome || info.cliente || 'Cliente';
+  }, [contatos, contatosSelecionados, info.cliente, nomeTemporario]);
+
   const confirmarEnvioMensagem = () => {
     if (contatosSelecionados.length === 0) return;
-    const primeiroContato = contatos.find(
-      (c: any) => c.numero === contatosSelecionados[0]
-    );
-    const nomeAtual = info.cliente || primeiroContato?.nome || "Cliente";
+    // Usa a função centralizada para obter o nome e abre o modal de confirmação.
+    const nomeAtual = obterNomeClienteSelecionado();
     setNomeTemporario(nomeAtual);
     setShowConfirmaNomeModal(true);
   };
@@ -365,17 +382,18 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
 
     setLoadingEnviar(true);
     try {
-      const nomeCliente = nomeTemporario || "Cliente";
+      const nomeCliente = obterNomeClienteSelecionado();
       const mensagemComCliente = `*ORÇAMENTO PARA: ${nomeCliente.toUpperCase()}*\n\n${mensagem}`;
 
-      console.log("Enviando orçamento para:", nomeCliente);
-      console.log("Contatos selecionados:", contatosSelecionados);
+      console.log("Preparando para enviar mensagem de texto...");
+      console.log("Enviando orçamento para:", nomeCliente, "Contatos:", contatosSelecionados.map(c => c.numero));
       
       const resp = await fetch("/api/enviarMensagem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          numeros: contatosSelecionados,
+          // Envia apenas os números para a API
+          numeros: contatosSelecionados.map(c => c.numero),
           mensagem: mensagemComCliente,
           cliente_nome: nomeCliente,
           produtos: orcamentoData,
@@ -396,7 +414,7 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data && data.ok) {
-        toast.success(`Mensagem enviada com sucesso! ID do orçamento: ${data.orcamentoId || 'N/A'}`);
+        toast.success(`Mensagem enviada! ID: ${data.orcamentoId || 'N/A'}`);
       } else {
         toast.error(
           "Falha ao enviar mensagem: " + (data?.error || "Erro desconhecido")
@@ -405,10 +423,11 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error("Erro ao enviar mensagem:", e);
       toast.error("Erro ao enviar: " + e);
+    } finally {
+      setShowModal(false);
+      setShowConfirmaNomeModal(false);
+      setLoadingEnviar(false);
     }
-    setShowModal(false);
-    setShowConfirmaNomeModal(false);
-    setLoadingEnviar(false);
   };
 
   const enviarPDFWhatsApp = async (): Promise<void> => {
@@ -476,9 +495,10 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
       const pdfBlob = pdf.output("blob");
       console.log(`PDF gerado: tamanho ${pdfBlob.size} bytes`);
       
-      const nomeCliente = info.cliente || "Cliente";
-      console.log(`Enviando PDF para cliente: ${nomeCliente}`);
-      console.log("Contatos selecionados:", contatosSelecionados);
+      // Usa a função centralizada para obter o nome do cliente.
+      const nomeCliente = obterNomeClienteSelecionado();
+
+      console.log(`Enviando PDF para cliente: ${nomeCliente}`, "Contatos:", contatosSelecionados.map(c => c.numero));
       
       const formData = new FormData();
       formData.append(
@@ -486,7 +506,7 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
         pdfBlob,
         `Orcamento-${nomeCliente}.pdf`
       );
-      formData.append("numeros", JSON.stringify(contatosSelecionados));
+      formData.append("numeros", JSON.stringify(contatosSelecionados.map(c => c.numero)));
       formData.append("cliente_nome", nomeCliente);
       formData.append("produtos", JSON.stringify(orcamentoData));
       formData.append("valor_total", valorTotal.toString());
@@ -509,7 +529,7 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data && data.ok) {
-        toast.success(`PDF enviado com sucesso! ID do orçamento: ${data.orcamentoId || 'N/A'}`);
+        toast.success(`PDF enviado! ID: ${data.orcamentoId || 'N/A'}`);
       } else {
         toast.error(
           "Falha ao enviar PDF: " + (data?.error || "Erro desconhecido")
@@ -518,16 +538,17 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.error("Erro ao enviar PDF:", e);
       toast.error("Erro ao enviar PDF: " + e);
+    } finally {
+      setShowModal(false);
+      setLoadingEnviar(false);
     }
-    setShowModal(false);
-    setLoadingEnviar(false);
   };
 
-  const handleCheckContato = (numero: string) => {
+  const handleCheckContato = (contato: Contato) => {
     setContatosSelecionados((prev) =>
-      prev.includes(numero)
-        ? prev.filter((n) => n !== numero)
-        : [...prev, numero]
+      prev.some(c => c.numero === contato.numero)
+        ? prev.filter((c) => c.numero !== contato.numero)
+        : [...prev, contato]
     );
   };
 
@@ -540,8 +561,6 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
     setShowModal,
     showInfoModal,
     setShowInfoModal,
-    showNomeModal,
-    setShowNomeModal,
     showConfirmaNomeModal,
     setShowConfirmaNomeModal,
     contatos,
@@ -566,13 +585,16 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
     orcamentoService,
     adicionarProduto,
     removerProduto,
-    copiarOrcamento,
-    enviarWhatsApp,
+    copiarOrcamento,    
+    abrirModalContatos,
     enviarPDFWhatsApp,
     enviarMensagemWhatsApp,
     confirmarEnvioMensagem,
     handleCheckContato,
     calcularDesconto,
+    setShowContatosModal,
+    showContatosModal,
+    tipoEnvio
   };
 
   return (

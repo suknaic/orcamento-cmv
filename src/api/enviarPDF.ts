@@ -1,14 +1,14 @@
-import { bot } from '../bot';
+import { sendPDF } from '../bot';
 import db from '../lib/db';
 
 export const POST = async (req: Request) => {
   console.log("Iniciando processamento de envio PDF");
-  
+
   const headers = {
     'Content-Type': 'application/json',
     'Cache-Control': 'no-cache, no-store, must-revalidate'
   };
-  
+
   try {
     // Espera multipart/form-data
     const contentType = req.headers.get('content-type') || '';
@@ -61,10 +61,10 @@ export const POST = async (req: Request) => {
           console.error("Erro ao analisar JSON de produtos:", e);
           produtos = [];
         }
-        
+
         // Garantir que o nome do cliente não seja genérico
-        const nomeReal = clienteNome === 'Cliente' ? 'Cliente Desconhecido' : clienteNome;
-        
+        const nomeReal = clienteNome;
+
         db.run('BEGIN TRANSACTION');
         const result = db.prepare(`
           INSERT INTO orcamentos_enviados 
@@ -78,7 +78,7 @@ export const POST = async (req: Request) => {
           'whatsapp_pdf',
           'enviando'
         );
-        
+
         orcamentoId = result.lastInsertRowid;
         console.log(`Orçamento salvo com ID: ${orcamentoId}`);
         db.run('COMMIT');
@@ -87,10 +87,10 @@ export const POST = async (req: Request) => {
         console.error('Erro ao salvar orçamento PDF no banco:', e);
       }
     } else {
-      console.error("Dados insuficientes para salvar orçamento:", { 
-        temCliente: !!clienteNome, 
-        temProdutos: !!produtosRaw, 
-        valorTotal 
+      console.error("Dados insuficientes para salvar orçamento:", {
+        temCliente: !!clienteNome,
+        temProdutos: !!produtosRaw,
+        valorTotal
       });
     }
 
@@ -105,12 +105,14 @@ export const POST = async (req: Request) => {
     const resultados = [];
     for (const numero of numeros) {
       try {
-        console.log(`Enviando PDF para ${numero}`);
-        await bot.sendOrcamentoPDF(numero, mensagem as string, {
-          mimetype,
-          data: base64,
-          filename,
-        });
+        console.log(`Enviando PDF para ${numero} - Nome do arquivo: ${filename}, tamanho: ${buffer.length} bytes`);
+
+        // Verificar que estamos chamando a função correta
+        console.log("Chamando função sendPDF do bot.ts...");
+
+        // Enviar o PDF sem mensagem
+        await sendPDF(numero, buffer, filename);
+
         resultados.push({ numero, status: 'ok' });
         console.log(`Envio para ${numero} concluído com sucesso`);
       } catch (e) {
@@ -118,7 +120,7 @@ export const POST = async (req: Request) => {
         resultados.push({ numero, status: 'erro', erro: String(e) });
       }
     }
-    
+
     // Atualizar status do orçamento após envio
     if (orcamentoId) {
       try {
@@ -137,14 +139,14 @@ export const POST = async (req: Request) => {
     } else {
       console.warn("Não foi possível atualizar o status pois o orçamento não foi salvo no banco");
     }
-    
+
     return new Response(JSON.stringify({ ok: true, resultados, orcamentoId }), {
       headers
     });
   } catch (error) {
     console.error("Erro ao processar envio de PDF:", error);
-    return new Response(JSON.stringify({ 
-      ok: false, 
+    return new Response(JSON.stringify({
+      ok: false,
       error: error instanceof Error ? error.message : String(error)
     }), {
       status: 500,

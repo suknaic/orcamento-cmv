@@ -1,4 +1,3 @@
-import React from "react";
 import { ToastContainer } from "react-toastify";
 import { OrcamentoProvider, useOrcamentoContext } from "./contexts/OrcamentoContext";
 import { ProductSelector } from "./components/ProductSelector";

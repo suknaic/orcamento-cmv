@@ -1,4 +1,4 @@
-import Logo from '../logo-julio.png';
+import Logo from '../assets/logo-julio.png';
 import { useLocation, useNavigate } from "react-router-dom";
 import { ThemeToggle } from './ThemeToggle';
 

@@ -1,4 +1,4 @@
-import { bot } from '../bot';
+import { sendPDF } from '../bot';
 import db from '../lib/db';
 
 export const POST = async (req: Request) => {
@@ -106,11 +106,7 @@ export const POST = async (req: Request) => {
     for (const numero of numeros) {
       try {
         console.log(`Enviando PDF para ${numero}`);
-        await bot.sendOrcamentoPDF(numero, mensagem as string, {
-          mimetype,
-          data: base64,
-          filename,
-        });
+        await sendPDF(numero, buffer, filename);
         resultados.push({ numero, status: 'ok' });
         console.log(`Envio para ${numero} concluído com sucesso`);
       } catch (e) {

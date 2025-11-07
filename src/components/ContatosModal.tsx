@@ -37,15 +37,20 @@ export function ContatosModal({ show, onClose, onSelectContato, titulo = "Seleci
         },
       });
 
-      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`Erro na requisição: ${response.status}`);
+      }
 
-      if (response.ok && data.contatos) {
+      const data = await response.json();
+      
+      // Verifica se data é um array (resposta direta da API)
+      if (Array.isArray(data)) {
+        setContatos(data);
+      } else if (data.contatos && Array.isArray(data.contatos)) {
+        // Mantém compatibilidade caso a API mude para retornar um objeto com propriedade contatos
         setContatos(data.contatos);
       } else {
-        const errorMsg = data.error || "Erro ao carregar contatos";
-        console.error("Erro ao carregar contatos:", errorMsg);
-        setError(errorMsg);
-        setContatos([]);
+        throw new Error("Formato de dados inválido");
       }
     } catch (error) {
       console.error("Erro ao buscar contatos:", error);
@@ -61,11 +66,24 @@ export function ContatosModal({ show, onClose, onSelectContato, titulo = "Seleci
     onClose();
   };
 
-  const contatosFiltrados = contatos.filter(
-    (contato) =>
-      contato.nome.toLowerCase().includes(filtro.toLowerCase()) ||
-      contato.numero.includes(filtro)
-  );
+  // Função melhorada para filtrar contatos de forma mais flexível
+  const contatosFiltrados = contatos.filter((contato) => {
+    if (!filtro.trim()) return true;
+    
+    const termoBusca = filtro.toLowerCase().trim();
+    
+    // Verifica se o nome contém o termo de busca
+    if (contato.nome.toLowerCase().includes(termoBusca)) {
+      return true;
+    }
+    
+    // Normaliza o número de telefone (remove caracteres especiais)
+    const numeroNormalizado = contato.numero.replace(/\D/g, '');
+    
+    // Permite buscar por qualquer sequência de dígitos no número
+    // Isso permite encontrar números mesmo sem o prefixo do país ou com partes do meio
+    return numeroNormalizado.includes(termoBusca.replace(/\D/g, ''));
+  });
 
   if (!show) return null;
 
@@ -100,7 +118,7 @@ export function ContatosModal({ show, onClose, onSelectContato, titulo = "Seleci
             <input
               type="text"
               className="w-full rounded-lg border border-border bg-background px-4 py-3 pl-10 text-sm focus:border-green-500 focus:ring-2 focus:ring-green-500 focus:ring-opacity-20"
-              placeholder="Buscar contato..."
+              placeholder="Buscar nome ou número..."
               value={filtro}
               onChange={(e) => setFiltro(e.target.value)}
             />

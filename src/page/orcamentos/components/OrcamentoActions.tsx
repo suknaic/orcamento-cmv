@@ -6,8 +6,9 @@ export function OrcamentoActions() {
   const {
     copiado,
     copiarOrcamento,
-    enviarWhatsApp,
+    abrirModalContatos,
     setShowInfoModal,
+    setShowContatosModal, // Adicione esta linha para obter a função
   } = useOrcamentoContext();
 
   return (
@@ -99,7 +100,7 @@ export function OrcamentoActions() {
             <button
               className="w-full bg-green-600 hover:bg-green-700 text-white px-6 py-4 rounded-xl font-bold transition-all duration-200 hover:scale-105 hover:shadow-lg min-h-[56px]"
               type="button"
-              onClick={enviarWhatsApp}
+              onClick={() => abrirModalContatos('texto')}
             >
               Enviar por WhatsApp
             </button>
@@ -130,7 +131,10 @@ export function OrcamentoActions() {
             <button
               className="w-full bg-red-600 hover:bg-red-700 text-white px-6 py-4 rounded-xl font-bold transition-all duration-200 hover:scale-105 hover:shadow-lg min-h-[56px]"
               type="button"
-              onClick={() => setShowInfoModal("pdf")}
+              onClick={() => {
+                setShowInfoModal(true); // Abre o modal de informações do PDF
+                // Nota: A continuação do fluxo (abrir modal de contatos) acontece dentro do InfoModal.
+              }}
             >
               Gerar e Enviar PDF
             </button>
