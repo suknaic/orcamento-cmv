@@ -6,9 +6,11 @@ import check from "./assets/check.svg";
 import { io, Socket } from "socket.io-client";
 import { Routes, Route } from "react-router-dom";
 
+import { Header } from "./components/Header";
 import { WhatsModal } from "./components/WhatsModal";
 import { Sidebar } from "./components/Sidebar";
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { ThemeProvider } from "./hooks/useTheme";
 
 // Tipos para o Socket
 interface ServerToClientEvents {
@@ -244,33 +246,36 @@ export function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <Sidebar 
-        isOpen={sidebarOpen} 
-        onToggle={setSidebarOpen} 
-        onCollapseChange={setSidebarCollapsed}
-        onWhatsClick={openWhatsAppModal} // Usar a nova função aqui
-      />
-      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:pl-16 lg:ml-0' : 'lg:pl-64'} mx-auto`}>
-        <div className={`py-6 bg-background max-w-7xl mx-auto px-4 sm:px-6 ${sidebarCollapsed ? 'lg:px-8' : ''}`}>
-          <ErrorBoundary>
-            <Routes>
-              <Route path="/" element={<ErrorBoundary><OrcamentoPage /></ErrorBoundary>} />
-              <Route path="/produtos" element={<ErrorBoundary><ProdutosCrudPage /></ErrorBoundary>} />
-              <Route path="/orcamentos" element={<ErrorBoundary><OrcamentosEnviadosPage /></ErrorBoundary>} />
-            </Routes>
-            {/* Modal WhatsApp */}
-            <WhatsModal
-              show={showWhatsModal}
-              onClose={() => setShowWhatsModal(false)}
-              whatsConnected={whatsConnected}
-              qr={qr}
-              message={message}
-              onReconnect={handleReconnect}
-            />
-          </ErrorBoundary>
+    <ThemeProvider>
+      <div className="min-h-screen bg-background text-foreground">
+        <Header onMenuClick={() => setSidebarOpen(true)} />
+        <Sidebar 
+          isOpen={sidebarOpen} 
+          onToggle={setSidebarOpen} 
+          onCollapseChange={setSidebarCollapsed}
+          onWhatsClick={openWhatsAppModal} // Usar a nova função aqui
+        />
+        <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:pl-16 lg:ml-0' : 'lg:pl-64'} mx-auto pt-16 lg:pt-0`}>
+          <div className={`py-6 bg-background max-w-7xl mx-auto px-4 sm:px-6 ${sidebarCollapsed ? 'lg:px-8' : ''}`}>
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/" element={<ErrorBoundary><OrcamentoPage /></ErrorBoundary>} />
+                <Route path="/produtos" element={<ErrorBoundary><ProdutosCrudPage /></ErrorBoundary>} />
+                <Route path="/orcamentos" element={<ErrorBoundary><OrcamentosEnviadosPage /></ErrorBoundary>} />
+              </Routes>
+              {/* Modal WhatsApp */}
+              <WhatsModal
+                show={showWhatsModal}
+                onClose={() => setShowWhatsModal(false)}
+                whatsConnected={whatsConnected}
+                qr={qr}
+                message={message}
+                onReconnect={handleReconnect}
+              />
+            </ErrorBoundary>
+          </div>
         </div>
       </div>
-    </div>
+    </ThemeProvider>
   );
 }

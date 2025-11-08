@@ -1,4 +1,4 @@
-import { bot } from '../bot';
+import { sendOrcamento } from '../bot';
 import db from '../lib/db';
 
 function addBusinessDays(date: Date, days: number) {
@@ -78,33 +78,49 @@ export default {
       const previsaoEntrega = addBusinessDays(agora, prazoProducao);
       const previsaoStr = previsaoEntrega.toLocaleDateString("pt-BR");
       
-      const msg = produtos.map((p: any, idx: number) => {
+      const produtosLista = produtos.map((p: any) => {
         if (!p.descricao) return '';
         const quantidade = p.quantidade || 1;
-        const valorUnit = p.valorUnitario || 0;
-        return [
-          `${quantidade} un. ${p.descricao}`,
-          `V. Unit.:............................R$ ${valorUnit.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
-          `TOTAL:.............................*R$${p.total.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}*`,
-          ''
-        ].filter(Boolean).join('\n');
-      }).filter(Boolean).join('\n\n');
-      
+        const valorUnit = (p.valorUnitario || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+        const subtotal = (p.total || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+
+        return `*${p.descricao.trim()}*
+- Quantidade: ${quantidade}
+- Valor Unit.: R$ ${valorUnit}
+- Subtotal: *R$ ${subtotal}*`;
+      }).filter(Boolean).join('\n-----------------------------------\n');
+
+      const valorTotal = (orcamento.valor_total || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2 });
+
       const mensagem = [
-        `*ORÇAMENTO PARA: ${orcamento.cliente_nome.toUpperCase()}*`,
+        '*- ORÇAMENTO JULIO DESIGNER -*',
         '',
-        msg,
+        `Olá, ${orcamento.cliente_nome}! Segue o seu orçamento solicitado.`,
         '',
-        `Valor total: *R$${orcamento.valor_total.toLocaleString("pt-BR", {minimumFractionDigits:2})}*`,
-        `Validade: 7 dias`,
-        `Prazo de produção: ${prazoProducao} dias úteis`,
-        `Data: ${dataStr}`,
-        `Hora: ${horaStr}`,
-        `Previsão para entrega: ${previsaoStr}`,
+        '📝 *PRODUTOS*',
+        '-----------------------------------',
+        produtosLista,
+        '-----------------------------------',
         '',
-        rodape.join('\n'),
+        `💰 *VALOR TOTAL: R$ ${valorTotal}*`,
         '',
-        dadosBancarios.join('\n')
+        '📋 *INFORMAÇÕES ADICIONAIS*',
+        `- Validade da proposta: *7 dias*`,
+        `- Prazo de produção: *${prazoProducao} dias úteis*`,
+        `- Previsão de entrega: *${previsaoStr}*`,
+        '',
+        '🏦 *DADOS PARA PAGAMENTO*',
+        '- PIX: 6899976-0124',
+        '- BANCO DO BRASIL',
+        '- AG. 2358-2',
+        '- CC. 108822-X',
+        '',
+        'Qualquer dúvida, estou à disposição!',
+        '',
+        '---',
+        '*JULIO DESIGNER*',
+        '_CNPJ: 52.548.924/0001-20_',
+        '_WhatsApp: (68) 99976-0124_',
       ].join('\n');
       
       const resultados = [];
@@ -116,7 +132,6 @@ export default {
             const mensagemPDF = [
               `*ORÇAMENTO PARA: ${orcamento.cliente_nome}*`,
               '',
-              msg,
               '',
               `Valor total: *R$${orcamento.valor_total.toLocaleString("pt-BR", {minimumFractionDigits:2})}*`,
               `Validade: 7 dias`,
@@ -132,10 +147,10 @@ export default {
             
             // Por enquanto, vamos enviar só a mensagem mesmo
             // TODO: Implementar geração do PDF no backend
-            await bot.sendOrcamento(numero, mensagemPDF);
+            await sendOrcamento(numero, mensagem);
             resultados.push({ numero, status: 'ok' });
           } else {
-            await bot.sendOrcamento(numero, mensagem);
+            await sendOrcamento(numero, mensagem);
             resultados.push({ numero, status: 'ok' });
           }
         } catch (e) {

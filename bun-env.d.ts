@@ -9,12 +9,11 @@ declare module "*.svg" {
 }
 
 declare module "*.module.css" {
-  /**
-   * A record of class names to their corresponding CSS module classes
-   */
   const classes: { readonly [key: string]: string };
   export = classes;
 }
+
+declare module '*.css';
 
 // filepath: src/images.d.ts
 declare module '*.png' {

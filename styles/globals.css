@@ -6,73 +6,47 @@
 
 :root {
   --background: hsl(0 0% 100%);
-  --foreground: hsl(20 14% 8%); /* Preto com toque de laranja */
+  --foreground: hsl(20 14% 8%);
   --card: hsl(0 0% 100%);
   --card-foreground: hsl(20 14% 8%);
   --popover: hsl(0 0% 100%);
   --popover-foreground: hsl(20 14% 8%);
-  --primary: hsl(24 95% 53%); /* Laranja vibrante */
+  --primary: hsl(24 95% 53%);
   --primary-foreground: hsl(0 0% 98%);
-  --secondary: hsl(28 20% 95%); /* Cinza com tom laranja */
+  --secondary: hsl(28 20% 95%);
   --secondary-foreground: hsl(20 14% 8%);
-  --muted: hsl(28 15% 94%); /* Cinza mais quente */
+  --muted: hsl(28 15% 94%);
   --muted-foreground: hsl(20 8% 40%);
-  --accent: hsl(24 95% 53%); /* Laranja */
+  --accent: hsl(24 95% 53%);
   --accent-foreground: hsl(0 0% 98%);
   --destructive: hsl(0 84.2% 60.2%);
   --destructive-foreground: hsl(0 0% 98%);
-  --border: hsl(28 15% 88%); /* Borda com tom laranja */
+  --border: hsl(28 15% 88%);
   --input: hsl(28 15% 88%);
-  --ring: hsl(24 95% 53%); /* Laranja para foco */
-  --chart-1: hsl(24 95% 53%); /* Laranja */
-  --chart-2: hsl(35 85% 55%); /* Laranja dourado */
-  --chart-3: hsl(15 85% 45%); /* Laranja avermelhado */
-  --chart-4: hsl(30 75% 60%); /* Laranja claro */
-  --chart-5: hsl(20 80% 50%); /* Laranja médio */
+  --ring: hsl(24 95% 53%);
   --radius: 0.6rem;
-  --sidebar-background: hsl(20 14% 8%); /* Preto com tom laranja */
-  --sidebar-foreground: hsl(28 15% 92%);
-  --sidebar-primary: hsl(24 95% 53%); /* Laranja */
-  --sidebar-primary-foreground: hsl(0 0% 98%);
-  --sidebar-accent: hsl(20 10% 15%); /* Cinza escuro com tom laranja */
-  --sidebar-accent-foreground: hsl(28 15% 92%);
-  --sidebar-border: hsl(20 8% 20%);
-  --sidebar-ring: hsl(24 95% 53%); /* Laranja */
 }
 
 .dark {
-  --background: hsl(20 14% 8%); /* Preto com tom laranja */
-  --foreground: hsl(28 15% 92%); /* Texto claro com tom quente */
-  --card: hsl(20 10% 12%); /* Cards escuros com tom laranja */
+  --background: hsl(20 14% 8%);
+  --foreground: hsl(28 15% 92%);
+  --card: hsl(20 10% 12%);
   --card-foreground: hsl(28 15% 92%);
   --popover: hsl(20 10% 12%);
   --popover-foreground: hsl(28 15% 92%);
-  --primary: hsl(24 95% 53%); /* Laranja vibrante */
+  --primary: hsl(24 95% 53%);
   --primary-foreground: hsl(20 14% 8%);
-  --secondary: hsl(20 8% 18%); /* Cinza escuro com tom laranja */
+  --secondary: hsl(20 8% 18%);
   --secondary-foreground: hsl(28 15% 92%);
   --muted: hsl(20 8% 18%);
   --muted-foreground: hsl(20 8% 65%);
-  --accent: hsl(24 95% 53%); /* Laranja */
+  --accent: hsl(24 95% 53%);
   --accent-foreground: hsl(20 14% 8%);
   --destructive: hsl(0 62.8% 30.6%);
   --destructive-foreground: hsl(0 0% 98%);
-  --border: hsl(20 8% 22%); /* Bordas escuras com tom laranja */
-  --input: hsl(20 8% 18%); /* Inputs escuros */
-  --ring: hsl(24 95% 53%); /* Laranja para foco */
-  --chart-1: hsl(24 95% 53%); /* Laranja */
-  --chart-2: hsl(35 85% 55%); /* Laranja dourado */
-  --chart-3: hsl(15 85% 45%); /* Laranja avermelhado */
-  --chart-4: hsl(30 75% 60%); /* Laranja claro */
-  --chart-5: hsl(20 80% 50%); /* Laranja médio */
-  --sidebar-background: hsl(20 14% 8%); /* Preto com tom laranja */
-  --sidebar-foreground: hsl(28 15% 92%);
-  --sidebar-primary: hsl(24 95% 53%); /* Laranja */
-  --sidebar-primary-foreground: hsl(20 14% 8%);
-  --sidebar-accent: hsl(20 8% 18%);
-  --sidebar-accent-foreground: hsl(28 15% 92%);
-  --sidebar-border: hsl(20 8% 22%);
-  --sidebar-ring: hsl(24 95% 53%); /* Laranja */
+  --border: hsl(20 8% 22%);
+  --input: hsl(20 8% 18%);
+  --ring: hsl(24 95% 53%);
 }
 
 @theme inline {
@@ -95,23 +69,10 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar-background);
   --animate-accordion-down: accordion-down 0.2s ease-out;
   --animate-accordion-up: accordion-up 0.2s ease-out;
 
@@ -141,113 +102,4 @@
   body {
     @apply bg-background text-foreground;
   }
-}
-
-/* Toast styles para suportar temas */
-.Toastify__toast-container {
-  @apply z-50;
-}
-
-.Toastify__toast {
-  @apply bg-card border border-border shadow-md;
-}
-
-.Toastify__toast--default {
-  @apply bg-card text-card-foreground;
-}
-
-.Toastify__toast--info {
-  @apply bg-blue-100 dark:bg-blue-950 text-blue-900 dark:text-blue-100 border-blue-200 dark:border-blue-800;
-}
-
-.Toastify__toast--success {
-  @apply bg-green-100 dark:bg-green-950 text-green-900 dark:text-green-100 border-green-200 dark:border-green-800;
-}
-
-.Toastify__toast--warning {
-  @apply bg-yellow-100 dark:bg-yellow-950 text-yellow-900 dark:text-yellow-100 border-yellow-200 dark:border-yellow-800;
-}
-
-.Toastify__toast--error {
-  @apply bg-red-100 dark:bg-red-950 text-red-900 dark:text-red-100 border-red-200 dark:border-red-800;
-}
-
-.Toastify__close-button {
-  @apply text-muted-foreground hover:text-foreground;
-}
-
-.Toastify__progress-bar {
-  @apply bg-primary;
-}
-
-
-:root {
-  --radius: 0.65rem;
-  /* Cores inspiradas no WhatsApp (tema claro) */
-  --background: hsl(0, 0%, 95%);
-  --foreground: hsl(100, 2%, 20%);
-  --card: hsl(0, 0%, 100%);
-  --card-foreground: hsl(110, 2%, 20%);
-  --popover: hsl(0, 0%, 100%);
-  --popover-foreground: hsl(110, 2%, 20%);
-  --primary: hsl(120, 80%, 32%); /* Verde WhatsApp */
-  --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(115, 5%, 90%);
-  --secondary-foreground: hsl(110, 5%, 25%);
-  --muted: hsl(115, 5%, 87%);
-  --muted-foreground: hsl(110, 2%, 40%);
-  --accent: hsl(142, 71%, 45%); /* Verde mais claro para destaque */
-  --accent-foreground: hsl(0, 0%, 100%);
-  --destructive: hsl(0, 84%, 60%);
-  --border: hsl(115, 5%, 85%);
-  --input: hsl(115, 5%, 85%);
-  --ring: hsl(120, 80%, 32%);
-  --chart-1: hsl(120, 80%, 32%); /* Verde WhatsApp */
-  --chart-2: hsl(142, 71%, 45%); /* Verde mais claro */
-  --chart-3: hsl(170, 70%, 45%); /* Verde azulado */
-  --chart-4: hsl(195, 70%, 50%); /* Azul */
-  --chart-5: hsl(210, 70%, 55%); /* Azul mais escuro */
-  --sidebar: hsl(0, 0%, 100%);
-  --sidebar-foreground: hsl(110, 2%, 20%);
-  --sidebar-primary: hsl(120, 80%, 32%); /* Verde WhatsApp */
-  --sidebar-primary-foreground: hsl(0, 0%, 100%);
-  --sidebar-accent: hsl(115, 5%, 92%);
-  --sidebar-accent-foreground: hsl(110, 5%, 25%);
-  --sidebar-border: hsl(115, 5%, 85%);
-  --sidebar-ring: hsl(120, 80%, 32%);
-}
-
-.dark {
-  /* Cores inspiradas no WhatsApp (tema escuro) */
-  --background: hsl(0, 0%, 10%);
-  --foreground: hsl(0, 0%, 95%);
-  --card: hsl(0, 0%, 15%);
-  --card-foreground: hsl(0, 0%, 95%);
-  --popover: hsl(0, 0%, 15%);
-  --popover-foreground: hsl(0, 0%, 95%);
-  --primary: hsl(120, 80%, 32%); /* Verde WhatsApp */
-  --primary-foreground: hsl(0, 0%, 100%);
-  --secondary: hsl(0, 0%, 20%);
-  --secondary-foreground: hsl(0, 0%, 95%);
-  --muted: hsl(0, 0%, 20%);
-  --muted-foreground: hsl(0, 0%, 70%);
-  --accent: hsl(142, 71%, 38%); /* Verde mais escuro para destaque no tema escuro */
-  --accent-foreground: hsl(0, 0%, 98%);
-  --destructive: hsl(0, 84%, 50%);
-  --border: hsl(0, 0%, 25%);
-  --input: hsl(0, 0%, 20%);
-  --ring: hsl(120, 80%, 32%);
-  --chart-1: hsl(120, 80%, 32%); /* Verde WhatsApp */
-  --chart-2: hsl(142, 71%, 45%); /* Verde mais claro */
-  --chart-3: hsl(170, 70%, 45%); /* Verde azulado */
-  --chart-4: hsl(195, 70%, 50%); /* Azul */
-  --chart-5: hsl(210, 70%, 55%); /* Azul mais escuro */
-  --sidebar: hsl(0, 0%, 15%);
-  --sidebar-foreground: hsl(0, 0%, 95%);
-  --sidebar-primary: hsl(120, 80%, 32%); /* Verde WhatsApp */
-  --sidebar-primary-foreground: hsl(0, 0%, 100%);
-  --sidebar-accent: hsl(0, 0%, 22%);
-  --sidebar-accent-foreground: hsl(0, 0%, 90%);
-  --sidebar-border: hsl(0, 0%, 25%);
-  --sidebar-ring: hsl(120, 80%, 32%);
 }

@@ -219,6 +219,7 @@ export function EnviadosProvider({ children }: { children: React.ReactNode }) {
   };
 
   const abrirReenvioMensagem = async (orcamento: Orcamento) => {
+    console.log('[EnvidadoContext] objeto orcamento: ', orcamento.produtos)
     if (!orcamento.cliente_numero) {
       toast.error("Orçamento não possui número de contato associado");
       return;
