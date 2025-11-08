@@ -41,8 +41,8 @@ interface OrcamentoContextType {
   // Estados de contatos
   contatos: any[];
   setContatos: React.Dispatch<React.SetStateAction<any[]>>;
-  contatosSelecionados: Contato[];
-  setContatosSelecionados: React.Dispatch<React.SetStateAction<Contato[]>>;
+  contatoSelecionado: Contato | null;
+  setContatoSelecionado: React.Dispatch<React.SetStateAction<Contato | null>>;
   buscaContato: string;
   setBuscaContato: React.Dispatch<React.SetStateAction<string>>;
   
@@ -78,7 +78,7 @@ interface OrcamentoContextType {
   enviarPDFWhatsApp: () => Promise<void>;
   enviarMensagemWhatsApp: () => Promise<void>;
   confirmarEnvioMensagem: () => void;
-  handleCheckContato: (contato: Contato) => void;
+  handleSelectContato: (contato: Contato) => void;
   calcularDesconto: (valorTotal: number, desconto: string) => number;
 }
 
@@ -112,7 +112,7 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
 
   // Estados de contatos
   const [contatos, setContatos] = useState([]);
-  const [contatosSelecionados, setContatosSelecionados] = useState<Contato[]>([]);
+  const [contatoSelecionado, setContatoSelecionado] = useState<Contato | null>(null);
   const [buscaContato, setBuscaContato] = useState("");
   
   // Estados de loading
@@ -158,11 +158,14 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
     
     // Se tem componentes, formata para o formato de medidas
     if (p.componentes.length > 0) {
-      const componentesFormatados = p.componentes.map(c => 
-        `${c.largura}x${c.altura}m (${c.quantidade}x)`
-      ).join(', ');
+      // Formata cada componente com sua descrição, medidas e quantidade.
+      // O `\n` será interpretado como quebra de linha no PDF, tornando a lista mais legível.
+      const componentesFormatados = p.componentes
+        .map(c => `  • ${c.descricao || 'Medida'}: ${c.largura}x${c.altura}m (${c.quantidade}x)`)
+        .join('\n');
       
-      descricaoFinal = `${p.produto.nome} (${componentesFormatados})`;
+      // Adiciona a lista de componentes abaixo do nome do produto.
+      descricaoFinal = `${p.produto.nome}\n${componentesFormatados}`;
     }
     
     return {
@@ -218,11 +221,20 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
           `  - ${c.descricao || 'Componente'}: ${c.largura}x${c.altura}m (${c.quantidade}x)`
         ).join('\n');
 
+        // Adiciona linhas de detalhe com base no tipo de produto
+        const detailLines = [];
+        if (p.produto.unidadeMedida === 'm2') {
+          detailLines.push(`Total (m²):.........................${p.quantidadeTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`);
+          detailLines.push(`V. Unit. (m²):...................R$ ${p.produto.precoUnitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`);
+        } else {
+          // Para outros tipos, mostra a quantidade
+          detailLines.push(`Quantidade:......................${p.quantidade} ${p.quantidade > 1 ? p.produto.unidadeMedida + 's' : p.produto.unidadeMedida}`);
+        }
+
         return [
           `${p.produto.nome}`,
           componentesStr,
-          `Total (m²):.........................${p.quantidadeTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-          `V. Unit. (m²):...................R$ ${p.produto.precoUnitario.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`,
+          ...detailLines,
           `TOTAL:.............................*R$${p.precoTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}*`,
           "",
         ]
@@ -365,12 +377,11 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
     // 2. Nome do primeiro contato selecionado no modal.
     // 3. Nome digitado no campo "Cliente" da tela principal (fallback).
     // 4. "Cliente" como valor padrão.    
-    const primeiroContato = contatosSelecionados[0];
-    return nomeTemporario || primeiroContato?.nome || info.cliente || 'Cliente';
-  }, [contatos, contatosSelecionados, info.cliente, nomeTemporario]);
+    return nomeTemporario || contatoSelecionado?.nome || info.cliente || 'Cliente';
+  }, [contatoSelecionado, info.cliente, nomeTemporario]);
 
   const confirmarEnvioMensagem = () => {
-    if (contatosSelecionados.length === 0) return;
+    if (!contatoSelecionado) return;
     // Usa a função centralizada para obter o nome e abre o modal de confirmação.
     const nomeAtual = obterNomeClienteSelecionado();
     setNomeTemporario(nomeAtual);
@@ -378,7 +389,7 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
   };
 
   const enviarMensagemWhatsApp = async () => {
-    if (contatosSelecionados.length === 0) return;
+    if (!contatoSelecionado) return;
 
     setLoadingEnviar(true);
     try {
@@ -386,14 +397,13 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
       const mensagemComCliente = `*ORÇAMENTO PARA: ${nomeCliente.toUpperCase()}*\n\n${mensagem}`;
 
       console.log("Preparando para enviar mensagem de texto...");
-      console.log("Enviando orçamento para:", nomeCliente, "Contatos:", contatosSelecionados.map(c => c.numero));
+      console.log("Enviando orçamento para:", nomeCliente, "Contato:", contatoSelecionado.numero);
       
       const resp = await fetch("/api/enviarMensagem", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // Envia apenas os números para a API
-          numeros: contatosSelecionados.map(c => c.numero),
+          numeros: [contatoSelecionado.numero],
           mensagem: mensagemComCliente,
           cliente_nome: nomeCliente,
           produtos: orcamentoData,
@@ -431,7 +441,7 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
   };
 
   const enviarPDFWhatsApp = async (): Promise<void> => {
-    if (contatosSelecionados.length === 0) return;
+    if (!contatoSelecionado) return;
     if (!propostaRef.current) {
       toast.error("Erro ao gerar PDF tente novamente");
       return;
@@ -498,7 +508,7 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
       // Usa a função centralizada para obter o nome do cliente.
       const nomeCliente = obterNomeClienteSelecionado();
 
-      console.log(`Enviando PDF para cliente: ${nomeCliente}`, "Contatos:", contatosSelecionados.map(c => c.numero));
+      console.log(`Enviando PDF para cliente: ${nomeCliente}`, "Contato:", contatoSelecionado.numero);
       
       const formData = new FormData();
       formData.append(
@@ -506,7 +516,7 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
         pdfBlob,
         `Orcamento-${nomeCliente}.pdf`
       );
-      formData.append("numeros", JSON.stringify(contatosSelecionados.map(c => c.numero)));
+      formData.append("numeros", JSON.stringify([contatoSelecionado.numero]));
       formData.append("cliente_nome", nomeCliente);
       formData.append("produtos", JSON.stringify(orcamentoData));
       formData.append("valor_total", valorTotal.toString());
@@ -544,12 +554,9 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const handleCheckContato = (contato: Contato) => {
-    setContatosSelecionados((prev) =>
-      prev.some(c => c.numero === contato.numero)
-        ? prev.filter((c) => c.numero !== contato.numero)
-        : [...prev, contato]
-    );
+  const handleSelectContato = (contato: Contato) => {
+    // Define o contato selecionado, ou desmarca se o mesmo for clicado novamente.
+    setContatoSelecionado((prev) => (prev?.numero === contato.numero ? null : contato));
   };
 
   const contextValue: OrcamentoContextType = {
@@ -565,8 +572,8 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
     setShowConfirmaNomeModal,
     contatos,
     setContatos,
-    contatosSelecionados,
-    setContatosSelecionados,
+    contatoSelecionado,
+    setContatoSelecionado,
     buscaContato,
     setBuscaContato,
     loadingEnviar,
@@ -590,7 +597,7 @@ export function OrcamentoProvider({ children }: { children: React.ReactNode }) {
     enviarPDFWhatsApp,
     enviarMensagemWhatsApp,
     confirmarEnvioMensagem,
-    handleCheckContato,
+    handleSelectContato,
     calcularDesconto,
     setShowContatosModal,
     showContatosModal,

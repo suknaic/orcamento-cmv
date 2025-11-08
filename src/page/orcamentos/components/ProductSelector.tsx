@@ -41,33 +41,48 @@ function ComponenteEditor({ item, itemIndex, atualizarItem }: { item: ItemOrcame
     atualizarItem('componentes', novosComponentes);
   };
 
+  // Criar uma dependência estável para o useEffect, evitando re-renderizações desnecessárias.
+  const componentesDependency = JSON.stringify(item.componentes.map(c => ({ l: c.largura, a: c.altura, q: c.quantidade })));
+
+  // Extrair dependências primitivas para evitar re-renderizações por referência de objeto.
+  const precoUnitario = item.produto.precoUnitario;
+  const unidadeMedida = item.produto.unidadeMedida;
+
   // Efeito para recalcular totais quando os componentes mudam
   useEffect(() => {
     // Usamos uma flag para evitar loops infinitos
     let skip = false;
     
     // Não fazemos nada se não tiver componentes para evitar cálculos desnecessários
-    if (item.componentes.length === 0 && item.produto.unidadeMedida !== 'm2') {
+    if (item.componentes.length === 0 && unidadeMedida !== 'm2') {
       return;
     }
     
     // Verificamos se realmente precisamos recalcular
     const precisaRecalcular = item.componentes.some(c => 
       c.largura > 0 && c.altura > 0 && c.quantidade > 0
-    ) || item.produto.precoUnitario > 0;
+    ) || precoUnitario > 0;
     
     if (precisaRecalcular) {
       setProdutos(produtos => {
         // Evitamos alterações aninhadas de estado
         if (skip) return produtos;
         
+        const itemAntigo = produtos[itemIndex];
+        const itemTemporario = { ...itemAntigo };
+        orcamentoService.calcularTotaisItem(itemTemporario);
+
+        // **A VERIFICAÇÃO QUE QUEBRA O LOOP**
+        // Só atualizamos o estado se os totais calculados forem diferentes dos atuais.
+        if (itemAntigo.quantidadeTotal === itemTemporario.quantidadeTotal && itemAntigo.precoTotal === itemTemporario.precoTotal) {
+          return produtos; // Retorna o estado original, sem causar re-renderização.
+        }
+
         // Criamos um novo array para evitar mutações do estado original
         return produtos.map((p, idx) => {
           if (idx === itemIndex) {
-            const itemAtualizado = { ...p };
-            // Calculamos os totais sem modificar o estado dentro do setProdutos
-            orcamentoService.calcularTotaisItem(itemAtualizado);
-            return itemAtualizado;
+            // Retorna o item com os totais já calculados.
+            return itemTemporario;
           }
           return p;
         });
@@ -78,7 +93,7 @@ function ComponenteEditor({ item, itemIndex, atualizarItem }: { item: ItemOrcame
     return () => {
       skip = true;
     };
-  }, [item.componentes, item.produto.precoUnitario, itemIndex, setProdutos, orcamentoService, item.produto.unidadeMedida]);
+  }, [componentesDependency, precoUnitario, unidadeMedida, itemIndex, setProdutos, orcamentoService]);
 
 
   return (

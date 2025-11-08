@@ -6,12 +6,12 @@ export function ContactSelectionModal() {
     showModal,
     setShowModal,
     contatos,
-    contatosSelecionados,
-    setContatosSelecionados,
+    contatoSelecionado,
+    setContatoSelecionado: setContatoSelecionado,
     buscaContato,
     setBuscaContato,
     loadingEnviar,
-    handleCheckContato,
+    handleSelectContato,
     confirmarEnvioMensagem,
     enviarPDFWhatsApp,
     tipoEnvio // Usar o estado correto que define o tipo de envio
@@ -22,7 +22,7 @@ export function ContactSelectionModal() {
   // Determina qual função de envio usar com base no contexto
   const handleEnviarClick = () => {
     console.log("[ContactSelectionModal] Clique no botão de envio, modo:", tipoEnvio);
-    console.log("[ContactSelectionModal] Contatos selecionados:", contatosSelecionados);
+    console.log("[ContactSelectionModal] Contato selecionado:", contatoSelecionado);
 
     // Se o modal foi aberto a partir do fluxo de PDF, usa a função de PDF
     if (tipoEnvio === "pdf") {
@@ -79,13 +79,8 @@ export function ContactSelectionModal() {
           <div className="space-y-2">
             <div className="flex items-center justify-between mb-3">
               <label className="text-sm font-medium text-foreground">
-                Contatos Disponíveis
+                Selecione um Contato
               </label>
-              {contatosSelecionados.length > 0 && (
-                <span className="text-sm bg-primary/10 text-primary px-2 py-1 rounded-full">
-                  {contatosSelecionados.length} selecionado{contatosSelecionados.length > 1 ? 's' : ''}
-                </span>
-              )}
             </div>
 
             <div className="max-h-64 overflow-y-auto space-y-1 border border-border rounded-lg p-2 bg-muted/20">
@@ -116,32 +111,14 @@ export function ContactSelectionModal() {
                     );
                   })
                   .map((contato: any) => (
-                    <label
+                    <button
                       key={`contato-${contato.numero}-${contato.nome || "sem-nome"}`}
-                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-accent/50 ${contatosSelecionados.some(c => c.numero === contato.numero)
+                      onClick={() => handleSelectContato(contato)}
+                      className={`flex items-center w-full text-left gap-3 p-3 rounded-lg cursor-pointer transition-all duration-200 hover:bg-accent/50 ${contatoSelecionado?.numero === contato.numero
                           ? 'bg-primary/10 border-2 border-primary/30'
                           : 'bg-background border border-border hover:border-primary/50'
                         }`}
                     >
-                      <div className="relative">
-                        <input
-                          type="checkbox"
-                          checked={contatosSelecionados.some(c => c.numero === contato.numero)}
-                          onChange={() => handleCheckContato(contato)}
-                          className="sr-only"
-                        />
-                        <div className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all ${contatosSelecionados.some(c => c.numero === contato.numero)
-                            ? 'bg-primary border-primary'
-                            : 'border-muted-foreground hover:border-primary'
-                          }`}>
-                          {contatosSelecionados.some(c => c.numero === contato.numero) && (
-                            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                        </div>
-                      </div>
-
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-foreground truncate">
                           {contato.nome || "Sem nome"}
@@ -156,7 +133,7 @@ export function ContactSelectionModal() {
                           <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
                         </svg>
                       </div>
-                    </label>
+                    </button>
                   ))
               )}
             </div>
@@ -169,7 +146,7 @@ export function ContactSelectionModal() {
             className="px-6 py-3 rounded-lg bg-secondary hover:bg-secondary/80 text-secondary-foreground font-medium transition-all duration-200 hover:scale-105 border border-border"
             onClick={() => {
               setShowModal(false);
-              setContatosSelecionados([]);
+              setContatoSelecionado(null);
             }}
           >
             Cancelar
@@ -177,7 +154,7 @@ export function ContactSelectionModal() {
 
           <button
             className="px-6 py-3 rounded-lg bg-green-600 hover:bg-green-700 text-white font-semibold transition-all duration-200 hover:scale-105 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100"
-            disabled={contatosSelecionados.length === 0 || loadingEnviar}
+            disabled={!contatoSelecionado || loadingEnviar}
             onClick={handleEnviarClick}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -192,7 +169,7 @@ export function ContactSelectionModal() {
                 Enviando...
               </>
             ) : (
-              `Enviar ${tipoEnvio === "pdf" ? "PDF" : "mensagem"} (${contatosSelecionados.length})`
+              `Enviar ${tipoEnvio === "pdf" ? "PDF" : "mensagem"}`
             )}
           </button>
         </div>

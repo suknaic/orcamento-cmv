@@ -16,18 +16,16 @@ export function InfoModal() {
     valorTotal,
     produtos,
     orcamentoData,
-    contatos,
-    setContatos,
-    setShowModal,
     loadingEnviar,
-    propostaRef
+    propostaRef,
+    abrirModalContatos // Importar a função centralizada
   } = useOrcamentoContext();
 
   if (!showInfoModal) return null;
 
   return (
     <Modal
-      isOpen={showInfoModal === "pdf"}
+      isOpen={!!showInfoModal}
       onClose={() => setShowInfoModal(false)}
       title="Finalizar Orçamento"
       subtitle="Complete as informações para gerar o orçamento"
@@ -37,16 +35,9 @@ export function InfoModal() {
         <div className="px-6 py-4 flex flex-col sm:flex-row gap-3 justify-end">
           <CancelButton onClick={() => setShowInfoModal(false)} />
           <SendButton
-            onClick={async () => {
-              setShowInfoModal(false);
-              try {
-                const res = await fetch("/api/contatos");
-                const lista = await res.json();
-                setContatos(lista);
-                setShowModal(true);
-              } catch (e) {
-                toast.error("Erro ao buscar contatos: " + e);
-              }
+            onClick={() => {
+              setShowInfoModal(false); // Fecha o modal atual
+              abrirModalContatos('pdf'); // Chama a função correta para abrir o modal de contatos
             }}
             loading={loadingEnviar}
           >
