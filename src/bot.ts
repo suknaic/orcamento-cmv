@@ -356,11 +356,13 @@ async function buildContactsFromDirectContacts(): Promise<ContactItem[]> {
     const numero = contact?.id?.user ? String(contact.id.user) : "";
     if (!numero) continue;
 
-    const isSaved =
-      typeof contact?.isMyContact === "boolean" ? contact.isMyContact : true;
+    const isSaved = contact?.isMyContact === true;
     const isBusiness = typeof contact?.isBusiness === "boolean" ? contact.isBusiness : false;
+    const hasDisplayName = Boolean(
+      String(contact?.pushname ?? contact?.name ?? contact?.shortName ?? "").trim()
+    );
 
-    if (!isSaved && !isBusiness) continue;
+    if (!isSaved && !isBusiness && !hasDisplayName) continue;
 
     const nomeRaw = contact?.pushname ?? contact?.name ?? contact?.shortName ?? numero;
     const nome = String(nomeRaw).trim();
