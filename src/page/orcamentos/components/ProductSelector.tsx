@@ -195,9 +195,7 @@ export function ProductSelector({ produtoIndex }: ProductSelectorProps) {
     });
   };
 
-  const handleUploadImagens = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const arquivos = Array.from(event.target.files || []);
-
+  const processarArquivosImagem = async (arquivos: File[]) => {
     if (arquivos.length === 0) return;
 
     const arquivosValidos = arquivos.filter((arquivo) => {
@@ -205,40 +203,68 @@ export function ProductSelector({ produtoIndex }: ProductSelectorProps) {
       const tamanhoValido = arquivo.size <= limiteBytesImagem;
 
       if (!tipoValido) {
-        toast.error(`Arquivo inválido: ${arquivo.name}. Use somente JPG ou PNG.`);
+        toast.error(`Arquivo invalido: ${arquivo.name || 'imagem'}. Use somente JPG ou PNG.`);
         return false;
       }
 
       if (!tamanhoValido) {
-        toast.error(`Arquivo muito grande: ${arquivo.name}. Limite de 5MB por imagem.`);
+        toast.error(`Arquivo muito grande: ${arquivo.name || 'imagem'}. Limite de 5MB por imagem.`);
         return false;
       }
 
       return true;
     });
 
-    if (arquivosValidos.length === 0) {
+    if (arquivosValidos.length === 0) return;
+
+    const baseId = Date.now();
+    const imagensConvertidas = await Promise.all(
+      arquivosValidos.map(async (arquivo, index) => ({
+        id: baseId + index,
+        src: await converterArquivoParaDataUrl(arquivo),
+        nomeArquivo: arquivo.name || `print-${baseId + index}.png`,
+      }))
+    );
+
+    atualizarItem('imagensTemporarias', [
+      ...(produtoItem.imagensTemporarias || []),
+      ...imagensConvertidas,
+    ]);
+  };
+
+  const handleUploadImagens = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivos = Array.from(event.target.files || []);
+
+    if (arquivos.length === 0) {
       event.target.value = '';
       return;
     }
 
     try {
-      const imagensConvertidas = await Promise.all(
-        arquivosValidos.map(async (arquivo, index) => ({
-          id: Date.now() + index,
-          src: await converterArquivoParaDataUrl(arquivo),
-          nomeArquivo: arquivo.name,
-        }))
-      );
-
-      atualizarItem('imagensTemporarias', [
-        ...(produtoItem.imagensTemporarias || []),
-        ...imagensConvertidas,
-      ]);
+      await processarArquivosImagem(arquivos);
     } catch (error) {
       toast.error(`Erro ao processar imagem: ${error instanceof Error ? error.message : 'erro desconhecido'}`);
     } finally {
       event.target.value = '';
+    }
+  };
+
+  const handleColarPrint = async (event: React.ClipboardEvent<HTMLDivElement>) => {
+    const itens = Array.from(event.clipboardData.items || []);
+    const arquivosClipboard = itens
+      .filter((item) => item.type.startsWith('image/'))
+      .map((item) => item.getAsFile())
+      .filter((arquivo): arquivo is File => !!arquivo);
+
+    if (arquivosClipboard.length === 0) return;
+
+    event.preventDefault();
+
+    try {
+      await processarArquivosImagem(arquivosClipboard);
+      toast.success('Print colado com sucesso no item.');
+    } catch (error) {
+      toast.error(`Erro ao colar print: ${error instanceof Error ? error.message : 'erro desconhecido'}`);
     }
   };
 
@@ -544,6 +570,14 @@ export function ProductSelector({ produtoIndex }: ProductSelectorProps) {
                 onChange={handleUploadImagens}
                 className="w-full text-sm text-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-primary-foreground hover:file:bg-primary/90"
               />
+              <div
+                tabIndex={0}
+                onPaste={handleColarPrint}
+                className="mt-3 rounded-md border border-dashed border-primary/40 bg-primary/5 px-3 py-2 text-xs text-foreground outline-none focus:ring-2 focus:ring-ring"
+                title="Clique aqui e use Ctrl+V para colar um print"
+              >
+                Cole um print aqui com Ctrl+V (ou Cmd+V no Mac) sem salvar arquivo.
+              </div>
               <p className="mt-2 text-xs text-muted-foreground">Formatos permitidos: JPG/PNG. Tamanho maximo: 5MB por imagem.</p>
             </div>
 

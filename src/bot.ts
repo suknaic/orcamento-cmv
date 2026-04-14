@@ -398,7 +398,7 @@ async function sendOrcamento(numero: string, mensagem: string) {
     console.error("Erro ao enviar orcamento para " + numero + ":", error);
     throw new Error(
       "Falha ao enviar mensagem: " +
-        (error instanceof Error ? error.message : "Erro desconhecido")
+      (error instanceof Error ? error.message : "Erro desconhecido")
     );
   }
 }
@@ -424,7 +424,7 @@ async function sendPDF(numero: string, pdfBuffer: Buffer, fileName: string) {
     console.error("Erro ao enviar PDF para " + numero + ":", error);
     throw new Error(
       "Falha ao enviar PDF: " +
-        (error instanceof Error ? error.message : "Erro desconhecido")
+      (error instanceof Error ? error.message : "Erro desconhecido")
     );
   }
 }
