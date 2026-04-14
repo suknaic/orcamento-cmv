@@ -7,6 +7,129 @@ import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
 import { PropostaComercial } from '@/components/proposta';
 
+function adicionarCanvasPaginadoAoPdf(
+  pdf: any,
+  canvas: HTMLCanvasElement,
+  node: HTMLElement,
+  imgWidthMm = 210,
+  pageHeightMm = 297
+) {
+  const getTopRelativo = (el: HTMLElement, root: HTMLElement): number => {
+    let top = 0;
+    let atual: HTMLElement | null = el;
+    while (atual && atual !== root) {
+      top += atual.offsetTop || 0;
+      atual = atual.offsetParent as HTMLElement | null;
+    }
+    return top;
+  };
+
+  const unirRanges = (ranges: Array<{ top: number; bottom: number }>) => {
+    if (ranges.length === 0) return ranges;
+    const ordenados = [...ranges].sort((a, b) => a.top - b.top);
+    const unidos: Array<{ top: number; bottom: number }> = [ordenados[0]];
+
+    for (let i = 1; i < ordenados.length; i++) {
+      const ultimo = unidos[unidos.length - 1];
+      const atual = ordenados[i];
+      if (atual.top <= ultimo.bottom) {
+        ultimo.bottom = Math.max(ultimo.bottom, atual.bottom);
+      } else {
+        unidos.push({ ...atual });
+      }
+    }
+
+    return unidos;
+  };
+
+  const pageHeightCanvasPx = (pageHeightMm * canvas.width) / imgWidthMm;
+  const scaleRatio = canvas.height / Math.max(node.scrollHeight, 1);
+
+  const blocosNaoQuebrar = Array.from(
+    node.querySelectorAll('[data-pdf-no-split="true"]')
+  ) as HTMLElement[];
+  const blocosQuebraAntes = Array.from(
+    node.querySelectorAll('[data-pdf-page-break-before="true"]')
+  ) as HTMLElement[];
+
+  const ranges = unirRanges(
+    blocosNaoQuebrar
+    .map((el) => {
+      const top = getTopRelativo(el, node) * scaleRatio;
+      const bottom = top + (el.offsetHeight || 0) * scaleRatio;
+      return { top, bottom };
+    })
+    .filter((r) => r.bottom > r.top)
+  );
+  const quebrasForcadas = blocosQuebraAntes
+    .map((el) => getTopRelativo(el, node) * scaleRatio)
+    .filter((top) => Number.isFinite(top) && top > 1)
+    .sort((a, b) => a - b);
+
+  const segmentos: Array<{ start: number; end: number }> = [];
+  const minSlicePx = pageHeightCanvasPx * 0.6;
+  const margemSegurancaPx = pageHeightCanvasPx * 0.05;
+  let start = 0;
+
+  while (start < canvas.height - 1) {
+    let end = Math.min(start + pageHeightCanvasPx, canvas.height);
+
+    const quebraForcada = quebrasForcadas.find((q) => q > start + 10 && q < end - 10);
+    if (quebraForcada !== undefined) {
+      end = quebraForcada;
+    }
+
+    if (end < canvas.height && quebraForcada === undefined) {
+      const crossing = ranges.find((r) => r.top < end && r.bottom > end);
+      if (crossing) {
+        const before = crossing.top - start;
+        const after = crossing.bottom - start;
+
+        if (before >= minSlicePx) {
+          end = Math.max(start + minSlicePx, crossing.top - margemSegurancaPx);
+        } else if (after <= pageHeightCanvasPx - margemSegurancaPx) {
+          end = Math.min(canvas.height, crossing.bottom + margemSegurancaPx);
+        }
+      }
+    }
+
+    if (end <= start + 10) {
+      end = Math.min(start + pageHeightCanvasPx, canvas.height);
+    }
+
+    segmentos.push({ start, end });
+    start = end;
+  }
+
+  segmentos.forEach((seg, index) => {
+    const sliceHeight = Math.max(1, Math.floor(seg.end - seg.start));
+    const sliceCanvas = document.createElement('canvas');
+    sliceCanvas.width = canvas.width;
+    sliceCanvas.height = sliceHeight;
+
+    const ctx = sliceCanvas.getContext('2d');
+    if (!ctx) return;
+
+    ctx.drawImage(
+      canvas,
+      0,
+      seg.start,
+      canvas.width,
+      sliceHeight,
+      0,
+      0,
+      canvas.width,
+      sliceHeight
+    );
+
+    const imgData = sliceCanvas.toDataURL('image/jpeg', 0.9);
+    const imgHeightMm = (sliceHeight * imgWidthMm) / canvas.width;
+
+    if (index > 0) pdf.addPage();
+    pdf.addImage(imgData, 'JPEG', 0, 0, imgWidthMm, imgHeightMm);
+  });
+}
+
 export function InfoModal() {
   const {
     showInfoModal,
@@ -16,6 +139,7 @@ export function InfoModal() {
     valorTotal,
     produtos,
     orcamentoData,
+    orcamentoDataPdf,
     loadingEnviar,
     propostaRef,
     abrirModalContatos // Importar a função centralizada
@@ -82,7 +206,7 @@ export function InfoModal() {
                     validade={info.validade || "7 dias"}
                     desconto={descontoAplicado}
                     pagamento={info.pagamento || "À vista"}
-                    orcamento={orcamentoData}
+                    orcamento={orcamentoDataPdf}
                     total={valorTotal}
                   />
                 );
@@ -137,23 +261,8 @@ export function InfoModal() {
                 });
 
                 // Gera o PDF
-                const imgData = canvas.toDataURL("image/jpeg", 0.95);
                 const pdf = new jsPDF("p", "mm", "a4");
-                const imgWidth = 210;
-                const pageHeight = 297;
-                const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                let heightLeft = imgHeight;
-                let position = 0;
-
-                pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
-                heightLeft -= pageHeight;
-
-                while (heightLeft >= 0) {
-                  position = heightLeft - imgHeight;
-                  pdf.addPage();
-                  pdf.addImage(imgData, "JPEG", 0, position, imgWidth, imgHeight);
-                  heightLeft -= pageHeight;
-                }
+                adicionarCanvasPaginadoAoPdf(pdf, canvas, tempDiv, 210, 297);
 
                 pdf.save(`Orcamento_${info.cliente || "Cliente"}.pdf`);
 

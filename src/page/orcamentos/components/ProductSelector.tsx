@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useOrcamentoContext, type ItemOrcamentoUI } from '../contexts/OrcamentoContext';
 import type { ComponenteItem } from '@/lib/models/orcamento.models';
+import { toast } from 'react-toastify';
 
 interface ProductSelectorProps {
   produtoIndex: number;
@@ -183,6 +184,70 @@ export function ProductSelector({ produtoIndex }: ProductSelectorProps) {
   } = useOrcamentoContext();
 
   const produtoItem = produtos[produtoIndex];
+  const limiteBytesImagem = 5 * 1024 * 1024;
+
+  const converterArquivoParaDataUrl = (arquivo: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result || ''));
+      reader.onerror = () => reject(new Error(`Falha ao ler arquivo ${arquivo.name}`));
+      reader.readAsDataURL(arquivo);
+    });
+  };
+
+  const handleUploadImagens = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const arquivos = Array.from(event.target.files || []);
+
+    if (arquivos.length === 0) return;
+
+    const arquivosValidos = arquivos.filter((arquivo) => {
+      const tipoValido = ['image/jpeg', 'image/png'].includes(arquivo.type);
+      const tamanhoValido = arquivo.size <= limiteBytesImagem;
+
+      if (!tipoValido) {
+        toast.error(`Arquivo inválido: ${arquivo.name}. Use somente JPG ou PNG.`);
+        return false;
+      }
+
+      if (!tamanhoValido) {
+        toast.error(`Arquivo muito grande: ${arquivo.name}. Limite de 5MB por imagem.`);
+        return false;
+      }
+
+      return true;
+    });
+
+    if (arquivosValidos.length === 0) {
+      event.target.value = '';
+      return;
+    }
+
+    try {
+      const imagensConvertidas = await Promise.all(
+        arquivosValidos.map(async (arquivo, index) => ({
+          id: Date.now() + index,
+          src: await converterArquivoParaDataUrl(arquivo),
+          nomeArquivo: arquivo.name,
+        }))
+      );
+
+      atualizarItem('imagensTemporarias', [
+        ...(produtoItem.imagensTemporarias || []),
+        ...imagensConvertidas,
+      ]);
+    } catch (error) {
+      toast.error(`Erro ao processar imagem: ${error instanceof Error ? error.message : 'erro desconhecido'}`);
+    } finally {
+      event.target.value = '';
+    }
+  };
+
+  const removerImagemTemporaria = (imagemId: number) => {
+    atualizarItem(
+      'imagensTemporarias',
+      (produtoItem.imagensTemporarias || []).filter((img) => img.id !== imagemId)
+    );
+  };
 
   const atualizarItem = (campo: keyof ItemOrcamentoUI, valor: any) => {
     setProdutos(produtosAtuais =>
@@ -445,6 +510,66 @@ export function ProductSelector({ produtoIndex }: ProductSelectorProps) {
             ? `${produtoItem.quantidadeTotal.toFixed(2)} m²`
             : `${produtoItem.quantidadeTotal} ${produtoItem.produto.unidadeMedida}(s)`
           }
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="lg:col-span-5 border border-border rounded-lg p-4 bg-background/60">
+          <div className="flex flex-col gap-3">
+            <div>
+              <label className="flex items-center gap-2 mb-2 font-medium text-foreground">
+                <svg
+                  className="w-4 h-4 text-primary"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+                Imagens de Referencia do Item (temporarias)
+              </label>
+              <p className="text-xs text-muted-foreground mb-2">
+                Essas imagens nao sao salvas no sistema. Elas servem apenas para compor o PDF deste orçamento.
+              </p>
+              <input
+                type="file"
+                accept="image/png,image/jpeg"
+                multiple
+                onChange={handleUploadImagens}
+                className="w-full text-sm text-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-2 file:text-primary-foreground hover:file:bg-primary/90"
+              />
+              <p className="mt-2 text-xs text-muted-foreground">Formatos permitidos: JPG/PNG. Tamanho maximo: 5MB por imagem.</p>
+            </div>
+
+            {(produtoItem.imagensTemporarias || []).length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {(produtoItem.imagensTemporarias || []).map((imagem, idx) => (
+                  <div key={imagem.id} className="border border-border rounded-md overflow-hidden bg-card">
+                    <img
+                      src={imagem.src}
+                      alt={`Preview ${idx + 1} do item ${produtoItem.produto.nome || 'produto'}`}
+                      className="w-full h-36 object-cover"
+                    />
+                    <div className="p-2 flex items-center justify-between gap-2">
+                      <span className="text-xs text-muted-foreground truncate" title={imagem.nomeArquivo}>
+                        {`${produtoItem.produto.nome || 'Item'} - Imagem ${idx + 1}`}
+                      </span>
+                      <button
+                        type="button"
+                        className="text-xs text-destructive hover:text-destructive/80"
+                        onClick={() => removerImagemTemporaria(imagem.id)}
+                      >
+                        Remover
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>

@@ -15,7 +15,7 @@ function OrcamentoPageContent() {
     adicionarProduto,
     propostaRef,
     info,
-    orcamentoData,
+    orcamentoDataPdf,
     valorTotal,
     calcularDesconto
   } = useOrcamentoContext();
@@ -217,7 +217,7 @@ function OrcamentoPageContent() {
               validade={info.validade || "7 dias"}
               desconto={descontoAplicado}
               pagamento={info.pagamento || "À vista"}
-              orcamento={orcamentoData}
+              orcamento={orcamentoDataPdf}
               total={valorTotal}
             />
           </div>
