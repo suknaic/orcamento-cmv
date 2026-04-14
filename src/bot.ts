@@ -362,12 +362,8 @@ async function buildContactsFromDirectContacts(): Promise<ContactItem[]> {
 
     if (!isSaved && !isBusiness) continue;
 
-    const nome = String(
-      contact?.pushname ||
-      contact?.name ||
-      contact?.shortName ||
-      numero
-    ).trim();
+    const nomeRaw = contact?.pushname ?? contact?.name ?? contact?.shortName ?? numero;
+    const nome = String(nomeRaw ?? numero).trim();
 
     if (!map.has(numero)) {
       map.set(numero, { nome: nome || numero, numero, timestamp: 0 });
