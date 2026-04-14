@@ -1,9 +1,10 @@
-import { getChats } from '../bot';
+import { getContacts } from '../bot';
 
 export const GET = async (req: Request) => {
-  console.log("Recebida requisição para /api/contatos");
+  const url = new URL(req.url);
+  const limit = Number(url.searchParams.get('limit') || '300');
+  const query = (url.searchParams.get('q') || '').trim();
 
-  // Headers para evitar cache
   const headers = {
     'Content-Type': 'application/json',
     'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -12,33 +13,19 @@ export const GET = async (req: Request) => {
   };
 
   try {
-    const chats = await getChats();
-    console.log(`Encontrados ${chats.length} chats.`);
-
-    const contatosPromises = chats.map(async (chat: any) => {
-      try {
-        // Obtém o objeto Contact associado ao chat
-        const contato = await chat.getContact();
-
-        const nome = contato.name || contato.pushname || chat.name || chat.id.user;
-
-        return {
-          nome: nome,
-          numero: chat.id.user
-        };
-      } catch (error) {
-        console.error(`Erro ao processar o chat ${chat.id.user}:`, error);
-        return {
-          nome: chat.name || chat.id.user, // Fallback em caso de erro
-          numero: chat.id.user
-        };
-      }
+    const result = await getContacts({
+      limit: Number.isFinite(limit) && limit > 0 ? limit : 300,
+      query,
     });
 
-    const contatos = (await Promise.all(contatosPromises)).filter(Boolean); // .filter(Boolean) remove nulos
-
-    console.log(`Retornando ${contatos.length} contatos formatados.`);
-    return new Response(JSON.stringify({ contatos }), { status: 200, headers });
+    return new Response(
+      JSON.stringify({
+        contatos: result.contatos,
+        total: result.total,
+        limit: Number.isFinite(limit) && limit > 0 ? limit : 300,
+      }),
+      { status: 200, headers }
+    );
 
   } catch (error) {
     console.error('Erro ao buscar contatos:', error);

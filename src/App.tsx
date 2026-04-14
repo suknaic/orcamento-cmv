@@ -190,13 +190,41 @@ export function App() {
   }
 
   // Função para abrir o modal e verificar o status do WhatsApp
-  const openWhatsAppModal = useCallback(() => {
+  const openWhatsAppModal = useCallback(async () => {
     setShowWhatsModal(true);
     
     // Ao abrir o modal, solicitamos o status atual do WhatsApp
     if (socketRef.current) {
       console.log("Solicitando status atual do WhatsApp ao abrir modal");
       socketRef.current.emit('get-whatsapp-status');
+    }
+
+    // Fallback para evitar loading eterno quando o evento de QR atrasar
+    try {
+      const res = await fetch('/api/bot-status', {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate'
+        }
+      });
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      if (typeof data?.connected === 'boolean') {
+        setWhatsConnected(data.connected);
+      }
+
+      if (data?.connected) {
+        setQr(check);
+      } else if (typeof data?.qr === 'string' && data.qr.startsWith('data:image')) {
+        setQr(data.qr);
+      }
+
+      if (typeof data?.message === 'string' && data.message.trim()) {
+        setMessage(data.message);
+      }
+    } catch (error) {
+      console.error('Falha no fallback de status do WhatsApp:', error);
     }
   }, []);
 

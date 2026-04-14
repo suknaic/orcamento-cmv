@@ -1,17 +1,16 @@
-import { isConnected } from '../bot';
+import { getBotStatus } from '../bot';
 
 export const GET = async () => {
   try {
-    console.log("Verificando status do bot WhatsApp...");
-    console.log(`Status do bot: ${isConnected ? "Conectado" : "Desconectado"}`);
-
-    // A variável 'isConnected' é um booleano exportado diretamente de bot.ts
-    // e é atualizada pelos eventos do cliente whatsapp-web.js.
+    const status = await getBotStatus();
     return new Response(
       JSON.stringify({
-        connected: isConnected,
-        status: isConnected ? "connected" : "disconnected",
-        timestamp: new Date().toISOString()
+        connected: status.connected,
+        status: status.connected ? "connected" : "disconnected",
+        qr: status.qr,
+        message: status.message,
+        state: status.state,
+        timestamp: status.updatedAt,
       }),
       { 
         status: 200,
