@@ -316,27 +316,18 @@ async function getBotStatus(): Promise<BotStatus> {
   };
 }
 
-async function buildContactsCache(): Promise<ContactItem[]> {
-  if (!client.info || !client.info.wid) {
-    contactsCache = {
-      expiresAt: Date.now() + CONTACTS_CACHE_TTL_MS,
-      contatos: [],
-    };
-    return [];
-  }
-
-  const chats = await client.getChats();
+function buildContactsFromChats(chats: any[]): ContactItem[] {
   const map = new Map<string, ContactItem>();
 
   for (const chat of chats) {
-    if (chat.isGroup) continue;
+    if (chat?.isGroup) continue;
 
     const numero = chat?.id?.user ? String(chat.id.user) : "";
     if (!numero) continue;
 
-    const nome = (chat.name && String(chat.name).trim()) || numero;
+    const nome = (chat?.name && String(chat.name).trim()) || numero;
     const timestamp =
-      typeof (chat as any).timestamp === "number" ? (chat as any).timestamp : 0;
+      typeof chat?.timestamp === "number" ? Number(chat.timestamp) : 0;
 
     const existing = map.get(numero);
     if (!existing) {
@@ -354,7 +345,54 @@ async function buildContactsCache(): Promise<ContactItem[]> {
     }
   }
 
-  const contatos = Array.from(map.values()).sort((a, b) => b.timestamp - a.timestamp);
+  return Array.from(map.values()).sort((a, b) => b.timestamp - a.timestamp);
+}
+
+async function buildContactsFromDirectContacts(): Promise<ContactItem[]> {
+  const rawContacts = await client.getContacts();
+  const map = new Map<string, ContactItem>();
+
+  for (const contact of rawContacts as any[]) {
+    const numero = contact?.id?.user ? String(contact.id.user) : "";
+    if (!numero) continue;
+
+    const isSaved = contact?.isMyContact === true;
+    const isBusiness = typeof contact?.isBusiness === "boolean" ? contact.isBusiness : false;
+    const hasDisplayName = Boolean(
+      String(contact?.pushname ?? contact?.name ?? contact?.shortName ?? "").trim()
+    );
+
+    if (!isSaved && !isBusiness && !hasDisplayName) continue;
+
+    const nomeRaw = contact?.pushname ?? contact?.name ?? contact?.shortName ?? numero;
+    const nome = String(nomeRaw).trim();
+
+    if (!map.has(numero)) {
+      map.set(numero, { nome: nome || numero, numero, timestamp: 0 });
+    }
+  }
+
+  return Array.from(map.values());
+}
+
+async function buildContactsCache(): Promise<ContactItem[]> {
+  if (!client.info || !client.info.wid) {
+    contactsCache = {
+      expiresAt: Date.now() + CONTACTS_CACHE_TTL_MS,
+      contatos: [],
+    };
+    return [];
+  }
+
+  let contatos: ContactItem[] = [];
+
+  try {
+    const chats = await client.getChats();
+    contatos = buildContactsFromChats(chats as any[]);
+  } catch (error) {
+    console.error("Erro ao listar chats no WhatsApp, tentando fallback via contatos:", error);
+    contatos = await buildContactsFromDirectContacts();
+  }
 
   contactsCache = {
     expiresAt: Date.now() + CONTACTS_CACHE_TTL_MS,
