@@ -149,7 +149,7 @@ const PropostaComercial = ({
             <th style={{ border: '1px solid #d1d5db', padding: '0.5rem', textAlign: 'left' }}>#</th>
             <th style={{ border: '1px solid #d1d5db', padding: '0.5rem', textAlign: 'left' }}>Descrição</th>
             <th style={{ border: '1px solid #d1d5db', padding: '0.5rem', textAlign: 'left' }}>Qtd</th>
-            <th style={{ border: '1px solid #d1d5db', padding: '0.5rem', textAlign: 'left' }}>Valor Unitário</th>
+            <th style={{ border: '1px solid #d1d5db', padding: '0.5rem', textAlign: 'left' }}>Valor Unidade</th>
             <th style={{ border: '1px solid #d1d5db', padding: '0.5rem', textAlign: 'left' }}>Total</th>
           </tr>
         </thead>
